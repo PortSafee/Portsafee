@@ -1,6 +1,12 @@
 # Documento de Visão - PortSafe: Entrega Segura e Inteligente
 
-## Integrantes do Projeto: Pedro Hennrique Dias de Paula Santos, MAria Eduarda Claro, Milenna Victoria Assis Portella, Juliana Fernandes do Nascimento
+# Integrantes do Projeto: 
+
+- Pedro Hennrique Dias de Paula Santos
+- Maria Eduarda Claro
+- Milenna Victoria Assis Portella 
+- Juliana Fernandes do Nascimento
+
 
 ## **Introdução**
 
