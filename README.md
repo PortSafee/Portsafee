@@ -1,244 +1,191 @@
-# Documento de Visão - PortSafe: Entrega Segura e Inteligente
+# 📄 Documento de Visão - PortSafe: Entrega Segura e Inteligente
 
-# Integrantes do Projeto: 
-
-- Pedro Hennrique Dias de Paula Santos
-- Maria Eduarda Claro
-- Milenna Victoria Assis Portella 
-- Juliana Fernandes do Nascimento
-
-
-## **Introdução**
-
-> ### **Objetivo do Documento**
-Nosso projeto **PortSafe**, é uma aplicação web desenvolvida para otimizar o recebimento de entregas em condomínios. Ele define o escopo, as funcionalidades, os usuários, os requisitos e as restrições do projeto, servindo como guia para a equipe de desenvolvimento e para a avaliação acadêmica.
-
-> ### **Escopo do Produto**
-O **PortSafe** é uma solução web que facilita a gestão de entregas em condomínios de apartamentos e casas, integrando rastreamento de pacotes, notificações automáticas, localização por mapas e interação via chatbot. O sistema permite que moradores acompanhem suas entregas, porteiros registrem chegadas e entregadores localizem endereços com precisão, tudo sem custos, utilizando ferramentas gratuitas.
-
-> ### **Definições, Acrônimos e Abreviações**
-- **PortSaf***: Nome do sistema.
-
-- **API:** Interface de Programação de Aplicativos.
-
-- **SRO (Sistema de Rastreamento de Objetos):** Sistema de Rastreamento de Objetos (Correios).
-
-- **Usuários:** Clientes (moradores) e Porteiro.
-
-> ### **Referências**
-- Documentação da API dos Correios (SRO Teste).
-
-- Documentação do Google Maps API, Dialogflow (planos gratuitos).
-
-- Wireframe e arquitetura do projeto (documentos internos da equipe).
-
-> ### **Visão Geral do Documento**
-Este documento detalha o posicionamento do produto, os stakeholders, as funcionalidades, os requisitos, as características de qualidade, as restrições, os riscos e o cronograma. Ele serve como base para o desenvolvimento e a apresentação do projeto na disciplina.
+## 👥 Integrantes do Projeto
+- Pedro Henrique Dias de Paula Santos  
+- Maria Eduarda Claro  
+- Milenna Victoria Assis Portella  
+- Juliana Fernandes do Nascimento  
 
 ---
 
-## **Posicionamento**
+## 1. Introdução
 
-> ### **Oportunidade de Negócio**
-Com o crescimento do comércio eletrônico, a demanda por entregas em condomínios aumentou, mas muitos enfrentam problemas como demora, insegurança e falta de comunicação. O **PortSafe** oferece uma solução gratuita e acessível para melhorar a experiência de moradores, porteiros e entregadores, com potencial para aplicação em condomínios reais.
+### 🎯 Objetivo do Documento
+Nosso projeto **PortSafe** é uma aplicação web desenvolvida para otimizar o recebimento de entregas em condomínios.  
+Este documento define o escopo, as funcionalidades, os usuários, os requisitos e as restrições do sistema, servindo como guia para a equipe de desenvolvimento e para avaliação acadêmica.
 
-> ### **Problema a Ser Resolvido**
-Moradores de condomínios enfrentam dificuldades para receber entregas devido à falta de integração entre aplicativos de entrega e sistemas de gestão condominial. Isso resulta em longos tempos de espera, pacotes extraviados, insegurança e sobrecarga na portaria. Além disso, entregadores têm dificuldade em localizar endereços em condomínios grandes.
+### 📌 Escopo do Produto
+O **PortSafe** tem como objetivo modernizar o processo de entrega em condomínios, eliminando a necessidade de intervenção do porteiro e proporcionando segurança e praticidade tanto para moradores quanto para entregadores.  
 
-> ### **Descrição do Produto**
+A solução utiliza **armários inteligentes**, integrados a um sistema que valida os dados da entrega, registra a encomenda e notifica o morador via **WhatsApp** com as credenciais de retirada.
+
+### 📖 Definições, Acrônimos e Abreviações
+- **PortSafe**: Nome do sistema.  
+- **API**: Interface de Programação de Aplicativos.  
+- **Armários Inteligentes**: Estrutura física que recebe as entregas com segurança.  
+- **Usuários**: Clientes (moradores), Entregadores e Porteiro (em caso de erros).  
+
+### 📚 Referências
+- Documentação do .NET  
+- Documentação do Google Maps API e Dialogflow (planos gratuitos)  
+- Wireframes e arquitetura do projeto (documentos internos da equipe)  
+
+### 🔎 Visão Geral do Documento
+O documento apresenta o **posicionamento do produto**, **stakeholders**, **funcionalidades**, **requisitos**, **qualidade**, **restrições**, **riscos** e **cronograma**.  
+Ele é a base para desenvolvimento e apresentação do projeto na disciplina.
+
+---
+
+## 2. Posicionamento
+
+### 💡 Oportunidade de Negócio
+Com o crescimento do e-commerce, condomínios enfrentam problemas como demora, insegurança e falhas na comunicação.  
+O **PortSafe** oferece uma solução gratuita e acessível, melhorando a experiência de moradores, porteiros e entregadores, com potencial para uso real.
+
+### 🚨 Problema a Ser Resolvido
+- Longos tempos de espera na portaria.  
+- Pacotes extraviados ou recebidos incorretamente.  
+- Falta de integração com sistemas de gestão condominial.  
+- Dificuldade de localização em condomínios grandes.  
+
+### 🛠️ Descrição do Produto
 O **PortSafe** é uma aplicação web que permite:
-- Rastrear entregas em tempo real via API dos Correios.
+- Rastrear entregas em tempo real (API Correios).  
+- Notificar moradores automaticamente.  
+- Armazenar encomendas em armários inteligentes.  
 
-- Interagir com um chatbot para consultar status e horários.
-
-- Receber notificações automáticas quando pacotes chegam.
-
-- Localizar torres/apartamentos ou casas com mapas interativos.
-
-> ### **Declaração de Posição do Produto**
-Para **moradores e porteiros de condomínios**, que **precisam de um processo de entrega eficiente e seguro**, o **PortSafe** é uma **aplicação web** que **otimiza o rastreamento, comunicação e localização de entregas**, proporcionando conveniência e segurança.
+### 📢 Declaração de Posição do Produto
+Para **moradores e entregadores de condomínios**, que precisam de um processo de entrega eficiente e seguro, o **PortSafe** é uma aplicação web que otimiza rastreamento, comunicação e localização de entregas, oferecendo conveniência e segurança.  
 
 ---
 
-## **Stakeholders e Usuários**
+## 3. Stakeholders e Usuários
 
-> ### **Identificação dos Stakeholders**
-- **Porteiro:**
-  - **Descrição:** Funcionário do condomínio que gerencia entregas.
+### Stakeholders
+**Porteiro**  
+- **Descrição**: Responsável por auxiliar em casos de erro.  
+- **Características**: Pode liberar armários e validar entregas manualmente.  
 
-  - **Características:** Usa o sistema para registrar pacotes e confirmar localizações.
+### Usuários
+**Cliente (Morador)**  
+- **Descrição**: Moradores do condomínio.  
+- **Características**: Idade variada, familiaridade básica com tecnologia.  
+- **Exemplos**: João Silva (Apto 101, Torre A), Carla Mendes (Quadra 1, Casa 1).  
 
+### Necessidades
+- **Cliente**: Rastrear entregas, receber notificações, retirar pacotes.  
+- **Porteiro**: Atuar somente em casos de erro.  
 
-> ### **Identificação dos Usuários**
-- **Cliente (Morador):**
-  - **Descrição:** Moradores de condomínios.
-
-  - **Características:** Idade variada, familiaridade básica com tecnologia, precisam rastrear entregas e receber notificações.
-
-  - **Exemplo:** João Silva (Apto 101, Torre A), Carla Mendes (Quadra 1, Casa 1).
-
-> ### **Necessidades dos Usuários e Stakeholders**
-- **Clientes:** Acompanhar entregas, receber notificações, interagir com chatbot, localizar endereços.
-
-- **Porteiro:** Registrar entregas de forma simples, visualizar histórico, confirmar localizações.
-
-> ### **Ambiente Operacional**
-- **Hardware:** Navegadores web (desktop e mobile) para clientes e porteiro.
-
-- **Software**: React (frontend), ASP.NET Core (backend), PostgreSQL (banco), APIs externas (Correios, Dialogflow, Google Maps).
-
-- **Condições:** Conexão à internet para acesso às APIs e hospedagem em plataformas gratuitas (Docker).
+### Ambiente Operacional
+- **Hardware**: Navegadores web (desktop e mobile).  
+- **Software**: React (frontend), ASP.NET Core (backend), PostgreSQL (banco).  
+- **APIs externas**: Correios, Google Maps, Dialogflow.  
+- **Condição**: Hospedagem gratuita via Docker.  
 
 ---
 
-## **Descrição do Produto**
+## 4. Descrição do Produto
 
-> ### **Principais Funcionalidades**
-1. **Rastreamento de Entregas:** Consulta de status via API dos Correios.
+### Principais Funcionalidades
+- Rastreamento de entregas (API Correios).  
+- Notificações automáticas (WhatsApp).  
+- Armários inteligentes com senhas únicas.  
+- Validação de destinatário + endereço.  
+- Encaminhamento para portaria em caso de erro.  
 
-2. **Chatbot:** Respostas a perguntas sobre status e horários via Dialogflow.
-
-3. **Notificações:** Alertas e simulação de SMS.
-
-4. **Mapas:** Localização de torres/apartamentos ou casas via Google Maps API.
-
-> ### **Suposições e Dependências**
-- **Suposições:**
-  - APIs externas (Correios, Google Maps, Dialogflow) estarão disponíveis nos planos gratuitos.
-
-  - Usuários têm acesso à internet.
-
-- **Dependências:**
-  - Configuração de contas gratuitas para APIs e hospedagem.
-
-  - Integração bem-sucedida entre frontend, backend e APIs.
-
-> ### **Limitações**
-- Suporta apenas entregas rastreadas pelos Correios.
-
-- Notificações SMS são simuladas na interface e serão enviadas.
-
-- Limite de requisições nas APIs gratuitas (ex.: Google Maps, Dialogflow).
-
-- Escopo restrito a 10 clientes e 1 porteiro para testes.
+### Suposições e Dependências
+- **Suposições**: Usuários têm acesso à internet.  
+- **Dependências**: Integração frontend, backend e APIs externas.  
 
 ---
 
-## **Requisitos de Alto Nível**
+## 5. Requisitos de Alto Nível
 
-> ### **Requisitos Funcionais**
-1. O sistema deve permitir login de clientes e porteiro via e-mail/senha.
+### Funcionais
+- Login para clientes e porteiro via e-mail/senha.  
+- Registro de entrega pelo entregador.  
+- Validação do endereço no sistema.  
+- Envio de notificações automáticas ao cliente.  
+- Abertura automática de armário para entrega/retirada.  
 
-2. Clientes devem inserir códigos de rastreamento e visualizar status.
-
-3. O porteiro deve registrar entregas e associá-las ao clientes.
-
-4. O sistema deve enviar notificações quando entregas forem registradas.
-
-5. O chatbot deve responder perguntas sobre status e instruções.
-
-6. O sistema deve exibir mapas com localizações de apartamentos/casas.
-
-> ### **Requisitos Não Funcionais**
-1. **Usabilidade:** Interface intuitiva, com navegação clara.
-
-2. **Confiabilidade:** APIs externas devem responder em até 5 segundos.
-
-3. **Desempenho:** Suporta (até 10 usuários simultâneos sem falhas).
-
-4. **Segurança:** Proteger dados com autenticação e HTTP.
-
-5. **Portabilidade:** Funcionar em navegadores desktop e mobile.
+### Não Funcionais
+- **Usabilidade**: Interface intuitiva.  
+- **Confiabilidade**: APIs respondem em até 5s.  
+- **Desempenho**: Até 10 usuários simultâneos.  
+- **Segurança**: JWT + HTTPS.  
+- **Portabilidade**: Desktop e mobile.  
 
 ---
 
-## **Qualidade do Produto**
-
-> ### **Usabilidade**
-- Interfaces simples, com campos claros e feedback visual (ex.: botão "Rastrear" muda de cor).
-
-- Chatbot com respostas naturais e fáceis de entender.
-
-- Design responsivo para dispositivos móveis.
-
-> ### **Confiabilidade**
-- APIs externas são testadas com dados fictícios para garantir respostas consistentes.
-
-- Banco de dados armazena histórico para evitar perda de informações.
-
-> ### **Desempenho**
-- Resposta rápida para rastreamento e notificações.
-
-- Suporta (em teste) 10 usuários simulados sem lentidão.
-
-> ### **Segurança**
-- Autenticação via JWT para proteger acesso.
-
-- Dados sensíveis (e-mails, endereços) armazenados com segurança no PostgreSQL.
-
-> ### **Portabilidade**
-- Compatível com navegadores modernos (Chrome, Firefox, Safari) em desktop e mobile.
+## 6. Qualidade do Produto
+- **Usabilidade**: Design responsivo, feedback visual.  
+- **Confiabilidade**: Histórico salvo no banco.  
+- **Desempenho**: Testes com usuários simulados.  
+- **Segurança**: Autenticação JWT + PostgreSQL.  
+- **Portabilidade**: Compatível com navegadores modernos.  
 
 ---
 
-## **Restrições**
-- **Tecnológicas:** Uso exclusivo de ferramentas gratuitas (React, ASP.NET Core, PostgreSQL, JWT, APIs com planos gratuitos).
-
-- **Orçamentárias:** Zero custo, devido ao contexto acadêmico.
-
-- **Legais:** Conformidade com políticas das APIs (ex.: limites de requisições do Google Maps).
-
-- **Escopo:** Limitado a 10 clientes, 1 porteiro e funcionalidades definidas.
+## 7. Restrições
+- Uso exclusivo de ferramentas gratuitas.  
+- Escopo limitado (10 clientes + 1 porteiro).  
+- Zero custo (projeto acadêmico).  
 
 ---
 
-## **Riscos**
-1. **Indisponibilidade de APIs:** APIs gratuitas podem atingir limites de requisições.
-   - **Solução:** Usar dados fictícios e armazenar coordenadas fixas no banco.
+## 8. Riscos
+- Limite de APIs gratuitas.  
+- Complexidade de integração.  
+- Experiência limitada da equipe.  
+- Prazo acadêmico reduzido.  
 
-2. **Complexidade de Integração:** Dificuldade em conectar frontend, backend e APIs.
-   - **Solução:** Testar integrações isoladamente antes da integração final.
+---
 
-3. **Falta de Experiência:** Time iniciante pode enfrentar desafios técnicos.
-   - **Solução:** Dividir tarefas claras e usar documentação oficial das ferramentas.
+## 9. Cronograma
+- **Semana 1 (13/08/2025):** Documento de Visão.  
+- **Semana 2 (22/08/2025):** Protótipo no Figma + planejamento.  
+- **Semana 3-4 (05/09/2025):** Backend + login.  
+- **Semana 5-6 (19/09/2025):** Telas cliente/porteiro + APIs.  
+- **Semana 7 (26/09/2025):** Notificações + testes iniciais.  
+- **Semana 8-9 (10/10/2025):** Chatbot + integração.  
+- **Semana 10-11 (24/10/2025):** Artigo científico + testes finais.  
+- **Semana 12 (07/11/2025):** Revisão + documentação + apresentação.  
 
-4. **Prazo Curto:** Cronograma acadêmico pode limitar testes.
-   - **Solução:** Priorizar funcionalidades principais e realizar testes incrementais.
+---
 
-## **Cronograma de Marcos**
-- **Semana 1 (até 13/08/2025):** Elaboração da Proposta Inicial e Documento de Visão.
+## 10. Apêndices
 
-- **Semana 2 (até 22/08/2025):** Criação do protótipo no Figma, planejamento das sprints e configuração inicial do monorepo.
+### Glossário
+- **Código de Rastreamento**: Identificador único (ex.: AA123456789BR).  
+- **Notificação**: Alerta via WhatsApp ou navegador.  
+- **Geocodificação**: Conversão de endereço em coordenadas.  
 
-- **Semana 3-4 (até 05/09/2025):** Desenvolvimento do backend, tela de login e início das telas do cliente e porteiro.
-
-- **Semana 5-6 (até 19/09/2025):** Finalização das telas do cliente e porteiro, integração com APIs externas (Correios, Google Maps), início do chatbot.
-
-- **Semana 7 (até 26/09/2025):** Implementação do sistema de notificações e testes iniciais com dados fictícios.
-
-- **Semana 8-9 (até 10/10/2025):** Finalização do chatbot, testes de integração e início da redação do artigo científico.
-
-- **Semana 10-11 (até 24/10/2025):** Finalização do artigo científico, testes completos (unitários e usuário) e integração final do frontend com o backend.
-
-- **Semana 12 (até 07/11/2025):** Revisão final, correção de bugs, finalização da documentação e preparação da apresentação.
-
-## **Apêndices**
-> ### **Glossário**
-- **Código de Rastreamento:** Identificador único de um pacote (ex.: AA123456789BR).
-
-- **Notificação:** Alerta enviado ao navegador ou dispositivo.
-
-- **Geocodificação:** Conversão de endereços em coordenadas (latitude/longitude).
 
 > ### **Diagrama Simplificado**
 ```
-[Cliente/Porteiro] --> [Frontend: React]
-                        | HTTP
-                        |
-[JWT Auth] <--> [Backend: ASP.NET Core]
-                        | Services
-                        |
-[PostgreSQL] <--> [Correios, Dialogflow, Google Maps]
+             +--------------------+
+             |  Sistema de Armários|
+             +--------------------+
+         /|\           /|\           /|\
+          |             |             |
+          |             |             |
+   +-----------+  +-------------+  +-----------+
+   | Entregador|  |   Morador   |  |  Portaria |
+   +-----------+  +-------------+  +-----------+
+
+        |                 |              |
+        |                 |              |
+        |--- Identificar destinatário --->|
+        |--- Validar endereço ------------>|
+        |--- Redigitar dados (opcional) -->|
+        |--- Encaminhar à portaria --------> (em caso de erro)
+        |--- Confirmar entrega ----------->|
+        |--- Guardar encomenda ----------->|
+        |<-- Gerar código de entrega ------|
+        |<-- Notificação via WhatsApp -----|
+                          |
+                          |--- Retirar encomenda --->|
+
 ```
 
 > ### **Dados Fictícios para Testes**
