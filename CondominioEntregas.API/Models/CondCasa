@@ -1,0 +1,6 @@
+namespace Endereco.Models;
+
+public class CondCasa : Condominio // Classe que herda de Condominio
+{
+    public string? NumeroCasa { get; set; }
+}
