@@ -1,7 +1,6 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace CondominioEntregas.API.Models
+namespace PortSafe.Models
 {
     public class Entrega
     {
@@ -16,20 +15,22 @@ namespace CondominioEntregas.API.Models
         public string? EnderecoGerado { get; set; }
 
         public int? ArmariumId { get; set; }
+        
         public virtual Armario? Armario { get; set; }
 
         public string? CodigoEntrega { get; set; }
+
         public string? SenhaAcesso { get; set; }
 
         public DateTime DataHoraRegistro { get; set; }
+
         public DateTime? DataHoraRetirada { get; set; }
 
         public StatusEntrega Status { get; set; }
 
         public string? TelefoneWhatsApp { get; set; }
-        public bool MensagemEnviada { get; set; }
 
-        public int TentativasValidacao { get; set; }
+        public bool MensagemEnviada { get; set; }
     }
 
     public enum StatusEntrega

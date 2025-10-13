@@ -1,8 +1,11 @@
-namespace Endereco.Models;
+namespace PortSafe.Models;
 
-public class CondApartamento : Condominio // Classe que herda de Condominio
+// Classe que herda de Condominio
+
+public class CondApartamento : Condominio 
 {
     public string? Bloco { get; set; }
 
     public string? NumeroApartamento { get; set; }
+    
 }
