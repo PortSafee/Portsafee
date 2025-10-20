@@ -2,7 +2,7 @@ namespace PortSafe.DTOs;
 
 public class LoginDTO
 {
-    public string? Username { get; set; } = string.Empty; // Pode ser email ou nome de usuário
+    public string? UsernameOrEmail { get; set; } = string.Empty; // Nome de usuário ou email
 
     public string? Password { get; set; } = string.Empty; // Senha do usuário
 }
