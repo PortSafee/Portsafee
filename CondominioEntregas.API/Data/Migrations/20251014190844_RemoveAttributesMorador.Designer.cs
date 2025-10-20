@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PortSafe.Data;
@@ -11,9 +12,11 @@ using PortSafe.Data;
 namespace CondominioEntregas.API.Data.Migrations
 {
     [DbContext(typeof(PortSafeContext))]
-    partial class PortSafeContextModelSnapshot : ModelSnapshot
+    [Migration("20251014190844_RemoveAttributesMorador")]
+    partial class RemoveAttributesMorador
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,15 +59,21 @@ namespace CondominioEntregas.API.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("NomeDoCondominio")
-                        .HasColumnType("text");
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasMaxLength(21)
+                        .HasColumnType("character varying(21)");
 
-                    b.Property<string>("Tipo")
+                    b.Property<string>("NomeDoCondominio")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
                     b.ToTable("Condominios");
+
+                    b.HasDiscriminator().HasValue("Condominio");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("PortSafe.Models.Entrega", b =>
@@ -120,32 +129,6 @@ namespace CondominioEntregas.API.Data.Migrations
                     b.ToTable("Entregas");
                 });
 
-            modelBuilder.Entity("PortSafe.Models.Unidade", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CondominioId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("DataCriacao")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("MoradorId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CondominioId");
-
-                    b.ToTable("Unidade");
-
-                    b.UseTptMappingStrategy();
-                });
-
             modelBuilder.Entity("PortSafe.Models.Usuario", b =>
                 {
                     b.Property<int>("Id")
@@ -177,6 +160,8 @@ namespace CondominioEntregas.API.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CondominioId");
+
                     b.ToTable("Usuarios");
 
                     b.HasDiscriminator<int>("Tipo");
@@ -184,37 +169,33 @@ namespace CondominioEntregas.API.Data.Migrations
                     b.UseTphMappingStrategy();
                 });
 
-            modelBuilder.Entity("PortSafe.Models.UnidadeApartamento", b =>
+            modelBuilder.Entity("PortSafe.Models.CondApartamento", b =>
                 {
-                    b.HasBaseType("PortSafe.Models.Unidade");
+                    b.HasBaseType("PortSafe.Models.Condominio");
+
+                    b.Property<string>("Bloco")
+                        .HasColumnType("text");
 
                     b.Property<string>("NumeroApartamento")
-                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Torre")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.ToTable("UnidadesApartamento", (string)null);
+                    b.HasDiscriminator().HasValue("CondApartamento");
                 });
 
-            modelBuilder.Entity("PortSafe.Models.UnidadeCasa", b =>
+            modelBuilder.Entity("PortSafe.Models.CondCasa", b =>
                 {
-                    b.HasBaseType("PortSafe.Models.Unidade");
+                    b.HasBaseType("PortSafe.Models.Condominio");
 
                     b.Property<string>("CEP")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("NumeroCasa")
                         .HasColumnType("integer");
 
                     b.Property<string>("Rua")
-                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.ToTable("UnidadesCasa", (string)null);
+                    b.HasDiscriminator().HasValue("CondCasa");
                 });
 
             modelBuilder.Entity("PortSafe.Models.Morador", b =>
@@ -225,6 +206,9 @@ namespace CondominioEntregas.API.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("CondominioId1")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Photo")
                         .HasColumnType("text");
 
@@ -232,19 +216,7 @@ namespace CondominioEntregas.API.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("UnidadeId")
-                        .HasColumnType("integer");
-
-                    b.HasIndex("CondominioId");
-
-                    b.HasIndex("UnidadeId")
-                        .IsUnique();
-
-                    b.ToTable("Usuarios", t =>
-                        {
-                            t.Property("Telefone")
-                                .HasColumnName("Morador_Telefone");
-                        });
+                    b.HasIndex("CondominioId1");
 
                     b.HasDiscriminator().HasValue(0);
                 });
@@ -252,12 +224,6 @@ namespace CondominioEntregas.API.Data.Migrations
             modelBuilder.Entity("PortSafe.Models.Porteiro", b =>
                 {
                     b.HasBaseType("PortSafe.Models.Usuario");
-
-                    b.Property<string>("Telefone")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasIndex("CondominioId");
 
                     b.HasDiscriminator().HasValue(1);
                 });
@@ -271,62 +237,22 @@ namespace CondominioEntregas.API.Data.Migrations
                     b.Navigation("Armario");
                 });
 
-            modelBuilder.Entity("PortSafe.Models.Unidade", b =>
+            modelBuilder.Entity("PortSafe.Models.Usuario", b =>
                 {
                     b.HasOne("PortSafe.Models.Condominio", "Condominio")
                         .WithMany()
                         .HasForeignKey("CondominioId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Condominio");
-                });
-
-            modelBuilder.Entity("PortSafe.Models.UnidadeApartamento", b =>
-                {
-                    b.HasOne("PortSafe.Models.Unidade", null)
-                        .WithOne()
-                        .HasForeignKey("PortSafe.Models.UnidadeApartamento", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("PortSafe.Models.UnidadeCasa", b =>
-                {
-                    b.HasOne("PortSafe.Models.Unidade", null)
-                        .WithOne()
-                        .HasForeignKey("PortSafe.Models.UnidadeCasa", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("PortSafe.Models.Morador", b =>
                 {
-                    b.HasOne("PortSafe.Models.Condominio", "Condominio")
+                    b.HasOne("PortSafe.Models.Condominio", null)
                         .WithMany("Moradores")
-                        .HasForeignKey("CondominioId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("PortSafe.Models.Unidade", "Unidade")
-                        .WithOne("Morador")
-                        .HasForeignKey("PortSafe.Models.Morador", "UnidadeId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Condominio");
-
-                    b.Navigation("Unidade");
-                });
-
-            modelBuilder.Entity("PortSafe.Models.Porteiro", b =>
-                {
-                    b.HasOne("PortSafe.Models.Condominio", "Condominio")
-                        .WithMany("Porteiros")
-                        .HasForeignKey("CondominioId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Condominio");
+                        .HasForeignKey("CondominioId1");
                 });
 
             modelBuilder.Entity("PortSafe.Models.Armario", b =>
@@ -337,13 +263,6 @@ namespace CondominioEntregas.API.Data.Migrations
             modelBuilder.Entity("PortSafe.Models.Condominio", b =>
                 {
                     b.Navigation("Moradores");
-
-                    b.Navigation("Porteiros");
-                });
-
-            modelBuilder.Entity("PortSafe.Models.Unidade", b =>
-                {
-                    b.Navigation("Morador");
                 });
 #pragma warning restore 612, 618
         }

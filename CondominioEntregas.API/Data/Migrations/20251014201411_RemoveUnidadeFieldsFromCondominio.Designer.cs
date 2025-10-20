@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PortSafe.Data;
@@ -11,9 +12,11 @@ using PortSafe.Data;
 namespace CondominioEntregas.API.Data.Migrations
 {
     [DbContext(typeof(PortSafeContext))]
-    partial class PortSafeContextModelSnapshot : ModelSnapshot
+    [Migration("20251014201411_RemoveUnidadeFieldsFromCondominio")]
+    partial class RemoveUnidadeFieldsFromCondominio
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,15 +59,21 @@ namespace CondominioEntregas.API.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("NomeDoCondominio")
-                        .HasColumnType("text");
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasMaxLength(21)
+                        .HasColumnType("character varying(21)");
 
-                    b.Property<string>("Tipo")
+                    b.Property<string>("NomeDoCondominio")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
                     b.ToTable("Condominios");
+
+                    b.HasDiscriminator().HasValue("Condominio");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("PortSafe.Models.Entrega", b =>
@@ -184,15 +193,29 @@ namespace CondominioEntregas.API.Data.Migrations
                     b.UseTphMappingStrategy();
                 });
 
+            modelBuilder.Entity("PortSafe.Models.CondApartamento", b =>
+                {
+                    b.HasBaseType("PortSafe.Models.Condominio");
+
+                    b.HasDiscriminator().HasValue("CondApartamento");
+                });
+
+            modelBuilder.Entity("PortSafe.Models.CondCasa", b =>
+                {
+                    b.HasBaseType("PortSafe.Models.Condominio");
+
+                    b.HasDiscriminator().HasValue("CondCasa");
+                });
+
             modelBuilder.Entity("PortSafe.Models.UnidadeApartamento", b =>
                 {
                     b.HasBaseType("PortSafe.Models.Unidade");
 
-                    b.Property<string>("NumeroApartamento")
+                    b.Property<string>("Bloco")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Torre")
+                    b.Property<string>("NumeroApartamento")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -240,22 +263,12 @@ namespace CondominioEntregas.API.Data.Migrations
                     b.HasIndex("UnidadeId")
                         .IsUnique();
 
-                    b.ToTable("Usuarios", t =>
-                        {
-                            t.Property("Telefone")
-                                .HasColumnName("Morador_Telefone");
-                        });
-
                     b.HasDiscriminator().HasValue(0);
                 });
 
             modelBuilder.Entity("PortSafe.Models.Porteiro", b =>
                 {
                     b.HasBaseType("PortSafe.Models.Usuario");
-
-                    b.Property<string>("Telefone")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.HasIndex("CondominioId");
 
@@ -306,7 +319,8 @@ namespace CondominioEntregas.API.Data.Migrations
                         .WithMany("Moradores")
                         .HasForeignKey("CondominioId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_Usuarios_Condominios_CondominioId1");
 
                     b.HasOne("PortSafe.Models.Unidade", "Unidade")
                         .WithOne("Morador")
@@ -321,9 +335,9 @@ namespace CondominioEntregas.API.Data.Migrations
             modelBuilder.Entity("PortSafe.Models.Porteiro", b =>
                 {
                     b.HasOne("PortSafe.Models.Condominio", "Condominio")
-                        .WithMany("Porteiros")
+                        .WithMany()
                         .HasForeignKey("CondominioId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Condominio");
@@ -337,8 +351,6 @@ namespace CondominioEntregas.API.Data.Migrations
             modelBuilder.Entity("PortSafe.Models.Condominio", b =>
                 {
                     b.Navigation("Moradores");
-
-                    b.Navigation("Porteiros");
                 });
 
             modelBuilder.Entity("PortSafe.Models.Unidade", b =>
