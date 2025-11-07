@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PortSafe.Data;
 using PortSafe.DTOs;
 using PortSafe.Models;
+using PortSafe.Services;
 using System.Text.RegularExpressions;
 
 namespace PortSafe.Controllers
@@ -12,10 +13,12 @@ namespace PortSafe.Controllers
     public class EntregaController : ControllerBase
     {
         private readonly PortSafeContext _context;
+        private readonly GmailService _emailService;
 
-        public EntregaController(PortSafeContext context)
+        public EntregaController(PortSafeContext context, GmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
 
@@ -241,8 +244,57 @@ namespace PortSafe.Controllers
 
                 await _context.SaveChangesAsync();
 
-                // TODO: Enviar notificação WhatsApp/SMS para o morador
-                // await EnviarNotificacaoMorador(entrega);
+                // Buscar dados do morador para enviar notificação
+                bool notificacaoEnviada = false;
+                try
+                {
+                    // Busca a unidade casa com o morador
+                    var unidadeCasa = await _context.UnidadesCasa
+                        .Include(u => u.Morador)
+                        .FirstOrDefaultAsync(u => u.Morador != null && u.Morador.Nome == entrega.NomeDestinatario);
+
+                    // Se não encontrou em casa, busca em apartamento
+                    if (unidadeCasa == null)
+                    {
+                        var unidadeApartamento = await _context.UnidadesApartamento
+                            .Include(u => u.Morador)
+                            .FirstOrDefaultAsync(u => u.Morador != null && u.Morador.Nome == entrega.NomeDestinatario);
+
+                        if (unidadeApartamento?.Morador != null)
+                        {
+                            await _emailService.EnviarEmailEntregaArmario(
+                                unidadeApartamento.Morador.Nome,
+                                unidadeApartamento.Morador.Email,
+                                entrega.Armario.Numero ?? "N/A",
+                                entrega.SenhaAcesso ?? "0000",
+                                entrega.CodigoEntrega ?? "N/A"
+                            );
+                            notificacaoEnviada = true;
+                            entrega.MensagemEnviada = true;
+                            await _context.SaveChangesAsync();
+                            Console.WriteLine($"Email de entrega enviado para: {unidadeApartamento.Morador.Email}");
+                        }
+                    }
+                    else if (unidadeCasa?.Morador != null)
+                    {
+                        await _emailService.EnviarEmailEntregaArmario(
+                            unidadeCasa.Morador.Nome,
+                            unidadeCasa.Morador.Email,
+                            entrega.Armario.Numero ?? "N/A",
+                            entrega.SenhaAcesso ?? "0000",
+                            entrega.CodigoEntrega ?? "N/A"
+                        );
+                        notificacaoEnviada = true;
+                        entrega.MensagemEnviada = true;
+                        await _context.SaveChangesAsync();
+                        Console.WriteLine($"Email de entrega enviado para: {unidadeCasa.Morador.Email}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erro ao enviar notificação por email: {ex.Message}");
+                    // Não falha a operação se o email falhar
+                }
 
                 return Ok(new ConfirmarFechamentoResponseDTO
                 {
@@ -251,7 +303,7 @@ namespace PortSafe.Controllers
                     CodigoEntrega = entrega.CodigoEntrega,
                     SenhaAcesso = entrega.SenhaAcesso,
                     DataHoraEntrega = entrega.DataHoraRegistro,
-                    NotificacaoEnviada = false // Mudar para true quando implementar notificação
+                    NotificacaoEnviada = notificacaoEnviada
                 });
             }
             catch (Exception ex)
@@ -314,17 +366,17 @@ namespace PortSafe.Controllers
             }
         }
 
-        public string NormalizarCEP(string CEP)
+        private string NormalizarCEP(string CEP)
         {
             return Regex.Replace(CEP, @"[^\d]", ""); 
         }
 
-        public string NormalizarNome(string nome)
+        private string NormalizarNome(string nome)
         {
             return nome.Trim().ToLower();
         }
 
-        public DadosDestinatarioDTO MapearDadosDestinatario(UnidadeCasa unidade, Morador morador)
+        private DadosDestinatarioDTO MapearDadosDestinatario(UnidadeCasa unidade, Morador morador)
         {
             return new DadosDestinatarioDTO
             {
@@ -338,20 +390,20 @@ namespace PortSafe.Controllers
             };
         }
 
-        public string GerarSenhaAcesso()
+        private string GerarSenhaAcesso()
         {
             var random = new Random();
             return random.Next(1000, 9999).ToString(); // Senha de 4 dígitos
         }
 
-        public string GerarCodigoEntrega()
+        private string GerarCodigoEntrega()
         {
             var random = new Random();
             return new string(Enumerable.Repeat("ABCDEF", 6) // gera código de 6 chars
               .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
-        public string GerarTokenValidacao()
+        private string GerarTokenValidacao()
         {
             var random = new Random();
             return new string(Enumerable.Repeat("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 16) // gera token de 16 chars

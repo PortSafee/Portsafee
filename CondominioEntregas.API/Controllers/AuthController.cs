@@ -142,6 +142,95 @@ namespace PortSafe.Controllers
                 
             });
         }
+
+
+        // Endpoint para solicitar reset de senha
+
+        [HttpPost("SolicitarResetSenha")]
+        public async Task<IActionResult> SolicitarResetSenha([FromBody] SolicitarResetSenhaRequestDTO request)
+        {
+            try
+            {
+                if (_authService == null)
+                {
+                    return StatusCode(500, "AuthService não está disponível.");
+                }
+
+                if (string.IsNullOrWhiteSpace(request.Email))
+                {
+                    return BadRequest(new { Message = "Email é obrigatório." });
+                }
+
+                var token = await _authService.SolicitarResetSenha(request.Email);
+
+                // Por segurança, sempre retornamos sucesso mesmo se o email não existir
+                // Isso evita que hackers descubram quais emails estão cadastrados
+                
+                _logger.LogInformation($"Solicitação de reset de senha para: {request.Email}");
+                
+                // O código é enviado APENAS por email, não na resposta da API
+                return Ok(new 
+                { 
+                    Message = "Se o email estiver cadastrado, você receberá um código no seu email para redefinir sua senha. Verifique também a caixa de spam."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Erro ao solicitar reset de senha: {ex.Message}");
+                return BadRequest(new { Message = "Erro ao processar solicitação." });
+            }
+        }
+
+
+        // Endpoint para redefinir senha
+
+        [HttpPost("RedefinirSenha")]
+        public async Task<IActionResult> RedefinirSenha([FromBody] RedefinirSenhaRequestDTO request)
+        {
+            try
+            {
+                if (_authService == null)
+                {
+                    return StatusCode(500, "AuthService não está disponível.");
+                }
+
+                if (string.IsNullOrWhiteSpace(request.Email) || 
+                    string.IsNullOrWhiteSpace(request.Token) ||
+                    string.IsNullOrWhiteSpace(request.NovaSenha))
+                {
+                    return BadRequest(new { Message = "Email, token e nova senha são obrigatórios." });
+                }
+
+                if (request.NovaSenha != request.ConfirmarSenha)
+                {
+                    return BadRequest(new { Message = "As senhas não conferem." });
+                }
+
+                var sucesso = await _authService.RedefinirSenha(
+                    request.Email, 
+                    request.Token, 
+                    request.NovaSenha
+                );
+
+                if (!sucesso)
+                {
+                    return BadRequest(new { Message = "Token inválido ou expirado." });
+                }
+
+                _logger.LogInformation($"Senha redefinida com sucesso para: {request.Email}");
+
+                return Ok(new { Message = "Senha redefinida com sucesso! Você já pode fazer login com a nova senha." });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Erro ao redefinir senha: {ex.Message}");
+                return BadRequest(new { Message = "Erro ao redefinir senha." });
+            }
+        }
     }
     
 }
