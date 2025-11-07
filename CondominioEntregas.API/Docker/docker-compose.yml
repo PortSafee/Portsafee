@@ -21,8 +21,10 @@ services:
 
   api:
     build:
-      context: .
-      dockerfile: Dockerfile
+      # Set the build context to the project root so the .csproj is available
+      context: ..
+      # Dockerfile path is relative to the build context
+      dockerfile: Docker/Dockerfile
     container_name: portsafee-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development

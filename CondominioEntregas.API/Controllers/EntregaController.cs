@@ -21,9 +21,9 @@ namespace PortSafe.Controllers
             _emailService = emailService;
         }
 
-
+        /// <summary>
         /// Valida os dados do destinatário (Nome e CEP) antes de liberar o armário
-
+        /// </summary>
         [HttpPost("ValidarDestinatario")]
         public async Task<ActionResult<ValidacaoDestinatarioResponseDTO>> ValidarDestinatario(
             [FromBody] ValidarDestinatarioRequestDTO request)
@@ -35,26 +35,18 @@ namespace PortSafe.Controllers
 
             try
             {
-                // Normalizar CEP (remover caracteres especiais)
-
                 var cepNormalizado = NormalizarCEP(request.CEP);
                 var nomeNormalizado = NormalizarNome(request.NomeDestinatario);
-
-                // Buscar moradores em unidades tipo Casa (que têm CEP)
 
                 var unidadesCasa = await _context.UnidadesCasa
                     .Include(u => u.Morador)
                     .Where(u => u.Morador != null)
                     .ToListAsync();
 
-                // Procurar correspondência exata
-
                 var unidadeExata = unidadesCasa.FirstOrDefault(u =>
                     u.CEP != null && NormalizarCEP(u.CEP) == cepNormalizado &&
                     NormalizarNome(u.Morador!.Nome ?? "") == nomeNormalizado
                 );
-
-                // Correspondência exata encontrada
 
                 if (unidadeExata != null)
                 {
@@ -72,9 +64,6 @@ namespace PortSafe.Controllers
                         ValidacaoId = unidadeExata.Id
                     });
                 }
-
-
-                // Nenhuma correspondência encontrada
 
                 return Ok(new ValidacaoDestinatarioResponseDTO
                 {
@@ -100,9 +89,7 @@ namespace PortSafe.Controllers
 
         /// <summary>
         /// Solicita um armário disponível após validação bem-sucedida
-        /// que o armário foi liberado e deverá clicar em "Confirmar" após depositar.
         /// </summary>
-        
         [HttpPost("SolicitarArmario")]
         public async Task<ActionResult<SolicitarArmarioResponseDTO>> SolicitarArmario(
             [FromBody] SolicitarArmarioRequestDTO request)
@@ -114,8 +101,6 @@ namespace PortSafe.Controllers
 
             try
             {
-                // Buscar armário disponível
-
                 var armarioDisponivel = await _context.Armarios
                     .Where(a => a.Status == StatusArmario.Disponivel)
                     .OrderBy(a => a.Numero)
@@ -130,8 +115,6 @@ namespace PortSafe.Controllers
                     });
                 }
 
-                // Buscar dados da unidade para pegar info do morador
-
                 var unidade = await _context.UnidadesCasa
                     .Include(u => u.Morador)
                     .FirstOrDefaultAsync(u => u.Id == request.UnidadeId);
@@ -145,11 +128,7 @@ namespace PortSafe.Controllers
                     });
                 }
 
-                // Gerar código único de entrega
-
                 var codigoEntrega = GerarCodigoEntrega();
-
-                // Criar registro de entrega
 
                 var entrega = new Entrega
                 {
@@ -165,8 +144,6 @@ namespace PortSafe.Controllers
                     MensagemEnviada = false
                 };
 
-                // Atualizar status do armário
-
                 armarioDisponivel.Status = StatusArmario.Ocupado;
                 armarioDisponivel.UltimaAbertura = DateTime.UtcNow;
 
@@ -180,7 +157,7 @@ namespace PortSafe.Controllers
                     NumeroArmario = int.Parse(armarioDisponivel.Numero ?? "0"),
                     CodigoEntrega = codigoEntrega,
                     EntregaId = entrega.Id,
-                    LimiteDeposito = DateTime.UtcNow.AddMinutes(5) // 5 minutos para colocar a entrega no armário
+                    LimiteDeposito = DateTime.UtcNow.AddMinutes(5)
                 });
             }
             catch (Exception ex)
@@ -195,9 +172,6 @@ namespace PortSafe.Controllers
 
         /// <summary>
         /// Confirma o fechamento do armário e finaliza a entrega
-        /// NOTA: Este endpoint é chamado quando o MOTORISTA clica no botão
-        /// "CONFIRMAR FECHAMENTO" na tela/app após depositar o pacote.
-        /// Não depende de sensor - é confirmação manual/visual.
         /// </summary>
         [HttpPost("ConfirmarFechamento")]
         public async Task<ActionResult<ConfirmarFechamentoResponseDTO>> ConfirmarFechamento(
@@ -210,8 +184,6 @@ namespace PortSafe.Controllers
 
             try
             {
-                // Buscar entrega
-
                 var entrega = await _context.Entregas
                     .Include(e => e.Armario)
                     .FirstOrDefaultAsync(e => e.Id == request.EntregaId);
@@ -234,11 +206,7 @@ namespace PortSafe.Controllers
                     });
                 }
 
-                // Atualizar status da entrega
-
                 entrega.Status = StatusEntrega.Armazenada;
-                
-                // Atualizar armário
                 entrega.Armario.Status = StatusArmario.Disponivel;
                 entrega.Armario.UltimoFechamento = DateTime.UtcNow;
 
@@ -330,8 +298,6 @@ namespace PortSafe.Controllers
 
             try
             {
-                // Criar registro de entrega redirecionada
-
                 var entrega = new Entrega
                 {
                     NomeDestinatario = request.NomeDestinatario,
@@ -344,9 +310,6 @@ namespace PortSafe.Controllers
 
                 _context.Entregas.Add(entrega);
                 await _context.SaveChangesAsync();
-
-                // TODO: Enviar notificação para portaria
-                // await NotificarPortaria(entrega);
 
                 return Ok(new AcionarPortariaResponseDTO
                 {
@@ -366,9 +329,13 @@ namespace PortSafe.Controllers
             }
         }
 
+        // ========================================
+        // MÉTODOS AUXILIARES – AGORA SÃO private
+        // ========================================
+
         private string NormalizarCEP(string CEP)
         {
-            return Regex.Replace(CEP, @"[^\d]", ""); 
+            return Regex.Replace(CEP, @"[^\d]", "");
         }
 
         private string NormalizarNome(string nome)
@@ -393,23 +360,21 @@ namespace PortSafe.Controllers
         private string GerarSenhaAcesso()
         {
             var random = new Random();
-            return random.Next(1000, 9999).ToString(); // Senha de 4 dígitos
+            return random.Next(1000, 9999).ToString();
         }
 
         private string GerarCodigoEntrega()
         {
             var random = new Random();
-            return new string(Enumerable.Repeat("ABCDEF", 6) // gera código de 6 chars
-              .Select(s => s[random.Next(s.Length)]).ToArray());
+            return new string(Enumerable.Repeat("ABCDEF", 6)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         private string GerarTokenValidacao()
         {
             var random = new Random();
-            return new string(Enumerable.Repeat("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 16) // gera token de 16 chars
-              .Select(s => s[random.Next(s.Length)]).ToArray());
+            return new string(Enumerable.Repeat("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 16)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
-
-        
     }
 }
