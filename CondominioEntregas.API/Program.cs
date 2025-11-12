@@ -8,18 +8,26 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
-builder.Services.AddDbContext<PortSafeContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))); // Configura o DbContext com PostgreSQL
+// Configurar connection string (prioriza DATABASE_URL do Render)
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddDbContext<PortSafeContext>(options => options.UseNpgsql(connectionString)); // Configura o DbContext com PostgreSQL
 
 builder.Services.AddControllers();
 
 builder.Services.AddScoped<AuthService>();
 
-// Registrar GmailService com as credenciais do appsettings.json
+// Registrar GmailService com as credenciais (prioriza variáveis de ambiente)
 builder.Services.AddScoped<GmailService>(sp =>
 {
     var config = sp.GetRequiredService<IConfiguration>();
-    var email = config["Gmail:Email"] ?? "";
-    var appPassword = config["Gmail:AppPassword"] ?? "";
+    var email = Environment.GetEnvironmentVariable("GMAIL_EMAIL") 
+        ?? config["Gmail:Email"] 
+        ?? "";
+    var appPassword = Environment.GetEnvironmentVariable("GMAIL_APP_PASSWORD") 
+        ?? config["Gmail:AppPassword"] 
+        ?? "";
     return new GmailService(email, appPassword);
 });
 
@@ -55,15 +63,13 @@ var app = builder.Build();
 
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Swagger sempre disponível (útil para produção)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Minha API v1");
-        c.RoutePrefix = string.Empty; // Define a raiz do Swagger UI
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PortSafe API v1");
+    c.RoutePrefix = string.Empty; // Define a raiz do Swagger UI
+});
 
 app.UseHttpsRedirection();
 
