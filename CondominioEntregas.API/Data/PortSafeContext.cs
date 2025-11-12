@@ -79,6 +79,13 @@ namespace PortSafe.Data
             // Configurar Tabela para cada tipo de Unidade (TPH)
             modelBuilder.Entity<UnidadeCasa>().ToTable("UnidadesCasa");
             modelBuilder.Entity<UnidadeApartamento>().ToTable("UnidadesApartamento");
+
+            // Configurar relacionamento Entrega -> Armario
+            modelBuilder.Entity<Entrega>()
+                .HasOne(e => e.Armario)
+                .WithMany(a => a.Entregas)
+                .HasForeignKey(e => e.ArmariumId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }
