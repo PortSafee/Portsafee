@@ -248,7 +248,55 @@ namespace PortSafe.Services
         }
 
 
-        
+        // Método para solicitar reset de senha
+        public async Task<string> SolicitarResetSenha(string email)
+        {
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (usuario == null)
+            {
+                // Por segurança, não informar que o email não existe
+                return string.Empty;
+            }
+
+            // Gera um token de 6 dígitos
+            var random = new Random();
+            var token = random.Next(100000, 999999).ToString();
+
+            usuario.ResetToken = token;
+            usuario.ResetTokenExpiracao = DateTime.UtcNow.AddHours(1); // Token válido por 1 hora
+
+            await _context.SaveChangesAsync();
+
+            // Aqui você pode enviar o token por email
+            // Por enquanto, apenas retorna o token (em produção, deve enviar por email)
+            return token;
+        }
+
+
+        // Método para redefinir senha
+        public async Task<bool> RedefinirSenha(string email, string token, string novaSenha)
+        {
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (usuario == null || 
+                usuario.ResetToken != token || 
+                usuario.ResetTokenExpiracao == null ||
+                usuario.ResetTokenExpiracao < DateTime.UtcNow)
+            {
+                return false;
+            }
+
+            usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(novaSenha);
+            usuario.ResetToken = null;
+            usuario.ResetTokenExpiracao = null;
+
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
         
         
 
