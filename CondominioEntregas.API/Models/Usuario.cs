@@ -17,6 +17,9 @@ namespace PortSafe.Models
 
             public DateTime DataCriacao { get; set; }
             
+            public string? ResetToken { get; set; }
+            
+            public DateTime? ResetTokenExpiracao { get; set; }
             
             public TipoUsuario Tipo { get; set; }
 
