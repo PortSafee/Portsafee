@@ -214,25 +214,48 @@ namespace PortSafe.Controllers
 
                 // Buscar dados do morador para enviar notificação
                 bool notificacaoEnviada = false;
-                try
+                
+                // Verifica se o email está configurado (não são valores padrão)
+                var config = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+                var emailConfigurado = config["Gmail:Email"] != "seu-email@gmail.com" && 
+                                      !string.IsNullOrEmpty(config["Gmail:Email"]);
+                
+                if (emailConfigurado)
                 {
-                    // Busca a unidade casa com o morador
-                    var unidadeCasa = await _context.UnidadesCasa
-                        .Include(u => u.Morador)
-                        .FirstOrDefaultAsync(u => u.Morador != null && u.Morador.Nome == entrega.NomeDestinatario);
-
-                    // Se não encontrou em casa, busca em apartamento
-                    if (unidadeCasa == null)
+                    try
                     {
-                        var unidadeApartamento = await _context.UnidadesApartamento
+                        // Busca a unidade casa com o morador
+                        var unidadeCasa = await _context.UnidadesCasa
                             .Include(u => u.Morador)
                             .FirstOrDefaultAsync(u => u.Morador != null && u.Morador.Nome == entrega.NomeDestinatario);
 
-                        if (unidadeApartamento?.Morador != null)
+                        // Se não encontrou em casa, busca em apartamento
+                        if (unidadeCasa == null)
+                        {
+                            var unidadeApartamento = await _context.UnidadesApartamento
+                                .Include(u => u.Morador)
+                                .FirstOrDefaultAsync(u => u.Morador != null && u.Morador.Nome == entrega.NomeDestinatario);
+
+                            if (unidadeApartamento?.Morador != null)
+                            {
+                                await _emailService.EnviarEmailEntregaArmario(
+                                    unidadeApartamento.Morador.Nome ?? "N/A",
+                                    unidadeApartamento.Morador.Email ?? "N/A",
+                                    entrega.Armario.Numero ?? "N/A",
+                                    entrega.SenhaAcesso ?? "0000",
+                                    entrega.CodigoEntrega ?? "N/A"
+                                );
+                                notificacaoEnviada = true;
+                                entrega.MensagemEnviada = true;
+                                await _context.SaveChangesAsync();
+                                Console.WriteLine($"Email de entrega enviado para: {unidadeApartamento.Morador.Email}");
+                            }
+                        }
+                        else if (unidadeCasa?.Morador != null)
                         {
                             await _emailService.EnviarEmailEntregaArmario(
-                                unidadeApartamento.Morador.Nome,
-                                unidadeApartamento.Morador.Email,
+                                unidadeCasa.Morador.Nome ?? "N/A",
+                                unidadeCasa.Morador.Email ?? "N/A",
                                 entrega.Armario.Numero ?? "N/A",
                                 entrega.SenhaAcesso ?? "0000",
                                 entrega.CodigoEntrega ?? "N/A"
@@ -240,28 +263,18 @@ namespace PortSafe.Controllers
                             notificacaoEnviada = true;
                             entrega.MensagemEnviada = true;
                             await _context.SaveChangesAsync();
-                            Console.WriteLine($"Email de entrega enviado para: {unidadeApartamento.Morador.Email}");
+                            Console.WriteLine($"Email de entrega enviado para: {unidadeCasa.Morador.Email}");
                         }
                     }
-                    else if (unidadeCasa?.Morador != null)
+                    catch (Exception ex)
                     {
-                        await _emailService.EnviarEmailEntregaArmario(
-                            unidadeCasa.Morador.Nome,
-                            unidadeCasa.Morador.Email,
-                            entrega.Armario.Numero ?? "N/A",
-                            entrega.SenhaAcesso ?? "0000",
-                            entrega.CodigoEntrega ?? "N/A"
-                        );
-                        notificacaoEnviada = true;
-                        entrega.MensagemEnviada = true;
-                        await _context.SaveChangesAsync();
-                        Console.WriteLine($"Email de entrega enviado para: {unidadeCasa.Morador.Email}");
+                        Console.WriteLine($"Erro ao enviar notificação por email: {ex.Message}");
+                        // Não falha a operação se o email falhar
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    Console.WriteLine($"Erro ao enviar notificação por email: {ex.Message}");
-                    // Não falha a operação se o email falhar
+                    Console.WriteLine("⚠️ Email não configurado - notificação por email desabilitada");
                 }
 
                 return Ok(new ConfirmarFechamentoResponseDTO
