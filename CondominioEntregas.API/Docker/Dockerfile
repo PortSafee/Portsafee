@@ -20,8 +20,8 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
-# Instalar EF Core tools
-RUN dotnet tool install --global dotnet-ef
+# Instalar EF Core tools com versão específica
+RUN dotnet tool install --global dotnet-ef --version 9.0.0
 ENV PATH="${PATH}:/root/.dotnet/tools"
 
 # Copiar arquivos necessários para migrations
