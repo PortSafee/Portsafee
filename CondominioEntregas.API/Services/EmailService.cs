@@ -18,37 +18,60 @@ namespace PortSafe.Services
         public async Task EnviarAsync(string para, string assunto, string corpoHtml)
         {
             var mensagem = new MimeMessage();
-            mensagem.From.Add(MailboxAddress.Parse(_email));
-            mensagem.To.Add(MailboxAddress.Parse(para));
+            mensagem.From.Add(new MailboxAddress("PortSafe", _email));
+            mensagem.To.Add(new MailboxAddress("", para));
             mensagem.Subject = assunto;
-            mensagem.Body = new TextPart("html") { Text = corpoHtml };
+            
+            // Criar apenas corpo de texto simples (sem HTML por enquanto)
+            var corpoTexto = StripHtml(corpoHtml);
+            mensagem.Body = new TextPart("plain") { Text = corpoTexto };
 
             using var cliente = new SmtpClient();
             
             try
             {
                 // Configurações de timeout
-                cliente.Timeout = 30000; // 30 segundos
+                cliente.Timeout = 120000; // 120 segundos
                 
-                // Desabilita verificação de certificado SSL (útil em desenvolvimento)
+                // Desabilita verificação de certificado SSL
                 cliente.ServerCertificateValidationCallback = (s, c, h, e) => true;
                 
-                // Conecta com TLS
-                await cliente.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls);
+                Console.WriteLine($"[Email] Tentando enviar email de texto simples...");
+                Console.WriteLine($"[Email] De: {_email}");
+                Console.WriteLine($"[Email] Para: {para}");
+                Console.WriteLine($"[Email] Assunto: {assunto}");
+                Console.WriteLine($"[Email] Conectando ao servidor SMTP (porta 465 SSL)...");
                 
-                // Autentica com a senha de app
+                // Tenta primeiro com SSL direto na porta 465
+                try
+                {
+                    await cliente.ConnectAsync("smtp.gmail.com", 465, SecureSocketOptions.SslOnConnect);
+                }
+                catch
+                {
+                    Console.WriteLine($"[Email] Porta 465 falhou, tentando porta 587 com STARTTLS...");
+                    await cliente.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls);
+                }
+                
+                Console.WriteLine($"[Email] Conectado! Autenticando...");
                 await cliente.AuthenticateAsync(_email, _appPassword);
                 
-                // Envia com timeout
-                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-                await cliente.SendAsync(mensagem, cts.Token);
+                Console.WriteLine($"[Email] Autenticado! Enviando mensagem...");
                 
-                Console.WriteLine("Email enviado com sucesso!");
+                // Desabilita pipelining para evitar problemas
+                cliente.Capabilities &= ~SmtpCapabilities.Pipelining;
+                
+                await cliente.SendAsync(mensagem);
+                
+                Console.WriteLine($"[Email] ✅ Email enviado com sucesso!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erro ao enviar: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                Console.WriteLine($"[Email] ❌ Erro ao enviar: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"[Email] ❌ Erro interno: {ex.InnerException.Message}");
+                }
                 throw;
             }
             finally
@@ -56,8 +79,21 @@ namespace PortSafe.Services
                 if (cliente.IsConnected)
                 {
                     await cliente.DisconnectAsync(true);
+                    Console.WriteLine($"[Email] Desconectado do servidor SMTP");
                 }
             }
+        }
+
+        // Helper para remover HTML e criar versão texto
+        private string StripHtml(string html)
+        {
+            if (string.IsNullOrEmpty(html)) return string.Empty;
+            
+            // Remove tags HTML básicas
+            var text = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", "");
+            // Remove espaços múltiplos
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
+            return text.Trim();
         }
 
         // Email de boas-vindas ao cadastrar morador
@@ -132,62 +168,30 @@ namespace PortSafe.Services
         // Email de notificação de entrega no armário
         public async Task EnviarEmailEntregaArmario(string nomeMorador, string emailMorador, string numeroArmario, string senhaAcesso, string codigoEntrega)
         {
-            var assunto = "📦 Sua entrega chegou! - PortSafe";
+            var assunto = "Sua entrega chegou - PortSafe";
+            
+            // Texto simples sem HTML
             var corpoHtml = $@"
-                <html>
-                <head>
-                    <style>
-                        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                        .header {{ background-color: #2196F3; color: white; padding: 20px; text-align: center; border-radius: 5px; }}
-                        .content {{ background-color: #f9f9f9; padding: 20px; margin-top: 20px; border-radius: 5px; }}
-                        .info-box {{ background-color: #fff; border: 2px solid #2196F3; padding: 15px; margin: 15px 0; border-radius: 5px; }}
-                        .destaque {{ background-color: #e3f2fd; padding: 10px; text-align: center; font-size: 20px; font-weight: bold; margin: 10px 0; border-radius: 5px; }}
-                        .footer {{ margin-top: 20px; text-align: center; font-size: 12px; color: #777; }}
-                        .importante {{ background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin: 15px 0; }}
-                    </style>
-                </head>
-                <body>
-                    <div class='container'>
-                        <div class='header'>
-                            <h1>📦 Sua Entrega Chegou!</h1>
-                        </div>
-                        <div class='content'>
-                            <h2>Olá, {nomeMorador}!</h2>
-                            <p>Temos uma ótima notícia! Sua encomenda foi depositada em um armário seguro e já está disponível para retirada.</p>
-                            
-                            <div class='info-box'>
-                                <h3>📍 Informações da Entrega:</h3>
-                                <p><strong>Armário:</strong></p>
-                                <div class='destaque'>Nº {numeroArmario}</div>
-                                
-                                <p><strong>Senha de Acesso:</strong></p>
-                                <div class='destaque'>{senhaAcesso}</div>
-                                
-                                <p><strong>Código de Rastreio:</strong> {codigoEntrega}</p>
-                            </div>
+Olá {nomeMorador}!
 
-                            <div class='importante'>
-                                <strong>⚠️ Instruções para Retirada:</strong>
-                                <ol>
-                                    <li>Dirija-se até o armário número <strong>{numeroArmario}</strong></li>
-                                    <li>Digite a senha <strong>{senhaAcesso}</strong> no painel</li>
-                                    <li>Retire sua encomenda</li>
-                                    <li>Feche bem a porta do armário</li>
-                                </ol>
-                            </div>
+Sua encomenda chegou e está disponível para retirada.
 
-                            <p>⏰ Recomendamos que retire sua encomenda o mais breve possível.</p>
-                            <p>Em caso de dúvidas ou problemas, entre em contato com a portaria.</p>
-                        </div>
-                        <div class='footer'>
-                            <p>Este é um e-mail automático. Por favor, não responda.</p>
-                            <p>&copy; 2025 PortSafe - Sistema de Gestão de Entregas</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            ";
+INFORMAÇÕES DA ENTREGA:
+- Armário: {numeroArmario}
+- Senha: {senhaAcesso}
+- Código: {codigoEntrega}
+
+COMO RETIRAR:
+1. Vá até o armário {numeroArmario}
+2. Digite a senha {senhaAcesso}
+3. Retire sua encomenda
+4. Feche bem a porta
+
+Retire sua encomenda o mais breve possível.
+
+Atenciosamente,
+Equipe PortSafe
+";
 
             await EnviarAsync(emailMorador, assunto, corpoHtml);
         }
