@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PortSafe.Data;
@@ -11,9 +12,11 @@ using PortSafe.Data;
 namespace CondominioEntregas.API.Data.Migrations
 {
     [DbContext(typeof(PortSafeContext))]
-    partial class PortSafeContextModelSnapshot : ModelSnapshot
+    [Migration("20251112142024_AddResetTokenAndInitialArmarios")]
+    partial class AddResetTokenAndInitialArmarios
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -75,6 +78,9 @@ namespace CondominioEntregas.API.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("ArmarioId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("ArmariumId")
                         .HasColumnType("integer");
 
@@ -112,7 +118,7 @@ namespace CondominioEntregas.API.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ArmariumId");
+                    b.HasIndex("ArmarioId");
 
                     b.ToTable("Entregas");
                 });
@@ -269,8 +275,7 @@ namespace CondominioEntregas.API.Data.Migrations
                 {
                     b.HasOne("PortSafe.Models.Armario", "Armario")
                         .WithMany("Entregas")
-                        .HasForeignKey("ArmariumId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("ArmarioId");
 
                     b.Navigation("Armario");
                 });
