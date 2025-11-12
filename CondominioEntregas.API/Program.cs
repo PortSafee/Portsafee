@@ -14,6 +14,15 @@ builder.Services.AddControllers();
 
 builder.Services.AddScoped<AuthService>();
 
+// Registrar GmailService com as credenciais do appsettings.json
+builder.Services.AddScoped<GmailService>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var email = config["Gmail:Email"] ?? "";
+    var appPassword = config["Gmail:AppPassword"] ?? "";
+    return new GmailService(email, appPassword);
+});
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "PortSafe", Version = "v1" });
