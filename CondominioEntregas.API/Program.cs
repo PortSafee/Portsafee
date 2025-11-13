@@ -2,6 +2,10 @@ using Microsoft.OpenApi.Models;
 using PortSafe.Data;
 using Microsoft.EntityFrameworkCore;
 using PortSafe.Services;
+using PortSafe.Services.AI;
+using PortSafe.Services.AI.Agents;
+using PortSafe.Services.AI.Interfaces;
+using PortSafe.Services.AI.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +21,11 @@ builder.Services.AddDbContext<PortSafeContext>(options => options.UseNpgsql(conn
 builder.Services.AddControllers();
 
 builder.Services.AddScoped<AuthService>();
+
+// Configurar AI (Gemini)
+builder.Services.Configure<AIConfiguration>(builder.Configuration.GetSection("AI"));
+builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+builder.Services.AddScoped<IIntelligentValidationAgent, IntelligentValidationAgent>();
 
 // Registrar GmailService com as credenciais (prioriza variáveis de ambiente)
 builder.Services.AddScoped<GmailService>(sp =>
