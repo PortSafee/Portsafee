@@ -4,6 +4,7 @@ using PortSafe.Data;
 using PortSafe.DTOs;
 using PortSafe.Models;
 using PortSafe.Services;
+using PortSafe.Services.AI.Interfaces;
 using System.Text.RegularExpressions;
 
 namespace PortSafe.Controllers
@@ -14,11 +15,16 @@ namespace PortSafe.Controllers
     {
         private readonly PortSafeContext _context;
         private readonly GmailService _emailService;
+        private readonly IIntelligentValidationAgent _validationAgent;
 
-        public EntregaController(PortSafeContext context, GmailService emailService)
+        public EntregaController(
+            PortSafeContext context, 
+            GmailService emailService,
+            IIntelligentValidationAgent validationAgent)
         {
             _context = context;
             _emailService = emailService;
+            _validationAgent = validationAgent;
         }
 
         /// <summary>
@@ -83,6 +89,87 @@ namespace PortSafe.Controllers
                 {
                     mensagem = "Erro ao validar destinatário",
                     erro = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Valida os dados do destinatário usando IA (Gemini) - Tolerante a erros de digitação
+        /// </summary>
+        [HttpPost("ValidarDestinatarioComIA")]
+        public async Task<ActionResult<ValidarDestinatarioComIAResponseDTO>> ValidarDestinatarioComIA(
+            [FromBody] ValidarDestinatarioRequestDTO request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                // Usar o agent de IA para validação inteligente
+                var resultadoIA = await _validationAgent.ValidateDestinatarioAsync(
+                    request.NomeDestinatario, 
+                    request.CEP
+                );
+
+                // Se encontrou match com alta confiança (>= 70%)
+                if (resultadoIA.IsValid && resultadoIA.UnidadeId.HasValue)
+                {
+                    // Buscar dados completos da unidade
+                    var unidadeCasa = await _context.UnidadesCasa
+                        .Include(u => u.Morador)
+                        .FirstOrDefaultAsync(u => u.Id == resultadoIA.UnidadeId.Value);
+
+                    if (unidadeCasa?.Morador != null)
+                    {
+                        var tokenValidacao = GerarTokenValidacao();
+
+                        return Ok(new ValidarDestinatarioComIAResponseDTO
+                        {
+                            Validado = true,
+                            ConfiancaIA = resultadoIA.ConfidenceScore,
+                            Mensagem = $"✅ Destinatário validado pela IA! (Confiança: {resultadoIA.ConfidenceScore:F0}%) - {resultadoIA.Reason}",
+                            TipoResultado = TipoResultadoValidacao.Sucesso,
+                            DadosEncontrados = MapearDadosDestinatario(unidadeCasa, unidadeCasa.Morador),
+                            Sugestoes = null,
+                            PodeRetentar = false,
+                            PodeAcionarPortaria = false,
+                            TokenValidacao = tokenValidacao,
+                            ValidacaoId = unidadeCasa.Id
+                        });
+                    }
+                }
+
+                // Se não encontrou match confiável, retornar sugestões
+                return Ok(new ValidarDestinatarioComIAResponseDTO
+                {
+                    Validado = false,
+                    ConfiancaIA = resultadoIA.ConfidenceScore,
+                    Mensagem = resultadoIA.Suggestions.Any() 
+                        ? $"❓ Destinatário não encontrado com certeza. Veja as sugestões abaixo: {resultadoIA.Reason}"
+                        : $"❌ Destinatário não encontrado no sistema. {resultadoIA.Reason}",
+                    TipoResultado = resultadoIA.Suggestions.Any() 
+                        ? TipoResultadoValidacao.MultiplasCombinacoes 
+                        : TipoResultadoValidacao.NaoEncontrado,
+                    DadosEncontrados = null,
+                    Sugestoes = resultadoIA.Suggestions,
+                    PodeRetentar = true,
+                    PodeAcionarPortaria = true,
+                    TokenValidacao = null,
+                    ValidacaoId = null
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ValidarDestinatarioComIAResponseDTO
+                {
+                    Validado = false,
+                    ConfiancaIA = 0,
+                    Mensagem = $"Erro ao validar com IA: {ex.Message}",
+                    TipoResultado = TipoResultadoValidacao.NaoEncontrado,
+                    PodeRetentar = true,
+                    PodeAcionarPortaria = true
                 });
             }
         }
