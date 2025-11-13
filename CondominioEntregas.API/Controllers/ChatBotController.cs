@@ -38,7 +38,8 @@ namespace PortSafe.Controllers
                 return StatusCode(500, new { erro = "Configuração da API Gemini não encontrada" });
             }
 
-            var service = new ChatbotService(_context, geminiKey, _logger);
+            var modelName = _config["AI:Gemini:Model"] ?? "gemini-2.5-flash";
+            var service = new ChatbotService(_context, geminiKey, modelName, _logger);
             var resposta = await service.ProcessarMensagemAsync(dto.Mensagem, dto.TelefoneWhatsApp);
             
             return Ok(new { resposta });

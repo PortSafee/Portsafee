@@ -12,12 +12,12 @@ namespace PortSafe.Services.AI
         private readonly GenerativeModel _model;
         private readonly ILogger<ChatbotService> _logger;
 
-        public ChatbotService(PortSafeContext context, string geminiApiKey, ILogger<ChatbotService> logger)
+        public ChatbotService(PortSafeContext context, string geminiApiKey, string modelName, ILogger<ChatbotService> logger)
         {
             _context = context;
             _logger = logger;
             _googleAI = new GoogleAI(apiKey: geminiApiKey);
-            _model = _googleAI.GenerativeModel(model: "gemini-pro");
+            _model = _googleAI.GenerativeModel(model: modelName);
         }
 
         public async Task<string> ProcessarMensagemAsync(string mensagemUsuario, string? telefoneWhatsApp = null)
