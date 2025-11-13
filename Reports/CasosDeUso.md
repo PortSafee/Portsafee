@@ -87,5 +87,3 @@ graph TB
     style Porteiro fill:#ffe1f5
     style Sistema fill:#e1ffe1
 ```
-
-
