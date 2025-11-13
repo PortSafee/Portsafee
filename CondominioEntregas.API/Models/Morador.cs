@@ -1,21 +1,22 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace Moradores.API.Models
+
+namespace PortSafe.Models
 {
-    public class Morador
+    public class Morador : Usuario
     {
-        public int Id { get; set; }
+        [Required]
+        public string? Telefone { get; set; }
         
         [Required]
-        public string? Nome { get; set; }
+        public string? CPF { get; set; }
         
-        [Required]
-        public string? NumeroCasa { get; set; }
-        
-        [Phone]
-        public string? TelefoneWhatsApp { get; set; }
-        
-        public string? Email { get; set; }
+        public string? Photo { get; set; }
+
+        public int? UnidadeId { get; set; } // Relação para saber qual unidade o morador pertence
+
+        public Unidade? Unidade { get; set; }
     }
 }
+
+

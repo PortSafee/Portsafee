@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace CondominioEntregas.API.Models
+namespace PortSafe.Models
 {
     public class Armario
     {
@@ -13,17 +13,19 @@ namespace CondominioEntregas.API.Models
         public StatusArmario Status { get; set; }
 
         public DateTime? UltimaAbertura { get; set; }
+
         public DateTime? UltimoFechamento { get; set; }
 
-        public virtual ICollection<Entrega>? Entregas { get; set; }
+        public virtual ICollection<Entrega>? Entregas { get; set; } 
     }
-    
+
 
     public enum StatusArmario
     {
         Disponivel,
         Ocupado,
         EmManutencao,
-        Reservado
+        Indisponivel
+
     }
 }

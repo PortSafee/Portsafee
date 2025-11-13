@@ -1,14 +1,15 @@
-namespace Endereco.Models;
+namespace PortSafe.Models;
 
-public abstract class Condominio
+public class Condominio
 {
-    public string? Nome { get; set; }
 
-    public string? Endereco { get; set; }
+    public int Id { get; set; }
 
-    public string? Cidade { get; set; }
+    public string? NomeDoCondominio { get; set; }
 
-    public string? Estado { get; set; }
+    public string? Tipo { get; set; } // "Casa" ou "Apartamento"
 
-    public string? CEP { get; set; }
+    public virtual ICollection<Morador> Moradores { get; set; } = new List<Morador>(); // Relação um-para-muitos com Morador
+    
+    public virtual ICollection<Porteiro> Porteiros { get; set; } = new List<Porteiro>(); // Relação um-para-muitos com Porteiro
 }
