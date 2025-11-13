@@ -67,9 +67,19 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
-
+app.UseCors("AllowFrontend");
 
 // Configure the HTTP request pipeline.
 // Swagger sempre disponível (útil para produção)
