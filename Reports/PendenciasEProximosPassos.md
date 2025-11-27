@@ -27,6 +27,13 @@ Todas as telas foram finalizadas. A interface está completa e aguardando apenas
 
 ---
 
+## Artigo Científico
+
+---
+
+## Big Data
+- [ ] Análise de dados presentes no banco de dados 
+
 ## Observações
 
 - O projeto está em fase final de desenvolvimento
