@@ -89,7 +89,7 @@ namespace PortSafe.Controllers
 
         // POST: api/auth/login
         [HttpPost("Login")]
-        public IActionResult Login([FromBody] LoginDTO dto)
+        public async Task<IActionResult> Login([FromBody] LoginDTO dto)
         {
             _logger.LogInformation("Tentativa de login para: {Email}", dto.UsernameOrEmail);
 
@@ -101,14 +101,14 @@ namespace PortSafe.Controllers
 
             if (_authService == null) return ServiceNotAvailable();
 
-            var usuario = _authService.Login(dto.UsernameOrEmail, dto.Password);
+            var usuario = await _authService.LoginAsync(dto.UsernameOrEmail, dto.Password);
             if (usuario == null)
             {
                 _logger.LogWarning("Login falhou: credenciais inválidas para {Email}", dto.UsernameOrEmail);
                 return Unauthorized(new { Message = "Credenciais inválidas." });
             }
 
-            var token = _authService.GenerateJwtToken(usuario, TipoUsuario.Morador);
+            var token = _authService.GenerateJwtToken(usuario, usuario.Tipo);
             _logger.LogInformation("Login bem-sucedido para {Email}", dto.UsernameOrEmail);
 
             return Ok(new { usuario, token });
