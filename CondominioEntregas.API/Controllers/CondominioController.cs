@@ -55,9 +55,12 @@ namespace PortSafe.Controllers
         }
 
         // Criação unificada para Casa ou Apartamento
-        [HttpPost("{tipo:Casa|Apartamento}")]
+        [HttpPost("{tipo}")]
         public async Task<ActionResult<object>> CreateCondominio(string tipo, [FromBody] CreateCondominioRequest request)
         {
+            if (tipo is not ("Casa" or "Apartamento"))
+                return BadRequest(new { message = "Tipo deve ser 'Casa' ou 'Apartamento'." });
+
             if (string.IsNullOrWhiteSpace(request.NomeDoCondominio))
                 return BadRequest(new { message = "Nome do condomínio é obrigatório." });
 
