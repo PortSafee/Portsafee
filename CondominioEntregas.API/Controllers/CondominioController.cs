@@ -16,16 +16,29 @@ namespace PortSafe.Controllers
 
         // Lista todos os condomínios com total de moradores
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<object>>> GetCondominios() =>
-            Ok(await _context.Condominios
-                .Select(c => new
-                {
-                    c.Id,
-                    c.NomeDoCondominio,
-                    c.Tipo,
-                    TotalMoradores = c.Moradores.Count
-                })
-                .ToListAsync());
+        public async Task<ActionResult<IEnumerable<object>>> GetCondominios()
+        {
+            try
+            {
+                var condominios = await _context.Condominios
+                    .Select(c => new
+                    {
+                        c.Id,
+                        c.NomeDoCondominio,
+                        c.Tipo,
+                        TotalMoradores = c.Moradores.Count
+                    })
+                    .ToListAsync();
+                
+                return Ok(condominios);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao buscar condomínios: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new { message = "Erro ao buscar condomínios", error = ex.Message });
+            }
+        }
 
         // Detalhes do condomínio por ID
         [HttpGet("{id}")]
