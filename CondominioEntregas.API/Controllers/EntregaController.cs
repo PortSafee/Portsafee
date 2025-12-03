@@ -56,9 +56,10 @@ namespace PortSafe.Controllers
             var cep = NormalizarCEP(request.CEP);
             var nome = NormalizarNome(request.NomeDestinatario);
 
-            var unidade = await _context.UnidadesCasa
+            var unidade = _context.UnidadesCasa
                 .Include(u => u.Morador)
-                .FirstOrDefaultAsync(u => u.Morador != null &&
+                .AsEnumerable()
+                .FirstOrDefault(u => u.Morador != null &&
                     NormalizarCEP(u.CEP) == cep &&
                     NormalizarNome(u.Morador.Nome) == nome);
 
