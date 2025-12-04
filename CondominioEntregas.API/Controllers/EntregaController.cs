@@ -1,3 +1,4 @@
+// File: PortSafe/Controllers/EntregaController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PortSafe.Data;
@@ -53,19 +54,98 @@ namespace PortSafe.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var cep = NormalizarCEP(request.CEP);
-            var nome = NormalizarNome(request.NomeDestinatario);
+            var nomeNormalizado = NormalizarNome(request.NomeDestinatario);
 
-            var unidade = _context.UnidadesCasa
-                .Include(u => u.Morador)
-                .AsEnumerable()
-                .FirstOrDefault(u => u.Morador != null &&
-                    NormalizarCEP(u.CEP) == cep &&
-                    NormalizarNome(u.Morador.Nome) == nome);
+            // Validação para CASA
+            if (string.Equals(request.TipoUnidade, "Casa", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(request.CEP))
+                {
+                    return BadRequest(new { Message = "CEP é obrigatório para tipo 'Casa'." });
+                }
 
-            return unidade != null
-                ? CriarRespostaSucesso(unidade, unidade.Morador!, isIA: false)
-                : CriarRespostaNaoEncontrado();
+                var cep = NormalizarCEP(request.CEP);
+
+                if (cep.Length != 8)
+                {
+                    return BadRequest(new { Message = "CEP inválido." });
+                }
+
+                var unidadeCasa = _context.UnidadesCasa
+                    .Include(u => u.Morador)
+                    .AsEnumerable() // passar para LINQ to Objects para usar NormalizarNome no comparador
+                    .FirstOrDefault(u => u.Morador != null &&
+                        NormalizarCEP(u.CEP) == cep &&
+                        NormalizarNome(u.Morador.Nome) == nomeNormalizado);
+
+                return unidadeCasa != null
+                    ? CriarRespostaSucesso(unidadeCasa, unidadeCasa.Morador!, isIA: false)
+                    : CriarRespostaNaoEncontrado();
+            }
+
+            // Validação para APARTAMENTO
+            if (string.Equals(request.TipoUnidade, "Apartamento", StringComparison.OrdinalIgnoreCase))
+            {
+                // Para apartamento, espera-se Torre + Numero (ou ao menos Numero)
+                if (string.IsNullOrWhiteSpace(request.Numero) && string.IsNullOrWhiteSpace(request.Torre))
+                {
+                    // podemos permitir busca apenas por nome, mas preferível que informe torre/numero
+                    // Retornamos não encontrado sugerindo informar torre/numero
+                    return Ok(new ValidacaoDestinatarioResponseDTO
+                    {
+                        Validado = false,
+                        Mensagem = "Por favor informe Torre e Número do apartamento para validação mais precisa.",
+                        TipoResultado = TipoResultadoValidacao.NaoEncontrado,
+                        DadosEncontrados = null,
+                        PodeRetentar = true,
+                        PodeAcionarPortaria = true,
+                        TokenValidacao = null,
+                        ValidacaoId = null
+                    });
+                }
+
+                // Normalizamos entrada
+                var torreReq = (request.Torre ?? "").Trim();
+                var numeroReq = (request.Numero ?? "").Trim();
+
+                var unidadeApto = _context.UnidadesApartamento
+                    .Include(u => u.Morador)
+                    .AsEnumerable()
+                    .FirstOrDefault(u =>
+                        u.Morador != null &&
+                        NormalizarNome(u.Morador.Nome) == nomeNormalizado &&
+                        (string.IsNullOrEmpty(torreReq) || string.Equals(u.Torre?.Trim(), torreReq, StringComparison.OrdinalIgnoreCase)) &&
+                        (string.IsNullOrEmpty(numeroReq) || string.Equals(u.NumeroApartamento?.Trim(), numeroReq, StringComparison.OrdinalIgnoreCase))
+                    );
+
+                if (unidadeApto != null)
+                {
+                    return Ok(new ValidacaoDestinatarioResponseDTO
+                    {
+                        Validado = true,
+                        Mensagem = "Destinatário validado com sucesso!",
+                        TipoResultado = TipoResultadoValidacao.Sucesso,
+                        DadosEncontrados = new DadosDestinatarioDTO
+                        {
+                            NomeMorador = unidadeApto.Morador!.Nome,
+                            TelefoneWhatsApp = unidadeApto.Morador.Telefone,
+                            TipoUnidade = "Apartamento",
+                            Endereco = $"Torre {unidadeApto.Torre}, Apto {unidadeApto.NumeroApartamento}",
+                            CEP = null,
+                            UnidadeId = unidadeApto.Id,
+                            MoradorId = unidadeApto.Morador.Id
+                        },
+                        PodeRetentar = false,
+                        PodeAcionarPortaria = false,
+                        TokenValidacao = GerarTokenValidacao(),
+                        ValidacaoId = unidadeApto.Id
+                    });
+                }
+
+                return CriarRespostaNaoEncontrado();
+            }
+
+            return BadRequest(new { Message = "TipoUnidade inválido. Use 'Casa' ou 'Apartamento'." });
         }
 
         [HttpPost("ValidarDestinatarioComIA")]
@@ -73,10 +153,16 @@ namespace PortSafe.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var resultadoIA = await _validationAgent.ValidateDestinatarioAsync(request.NomeDestinatario, request.CEP);
+            // Se for casa, passe CEP para a IA; se for apto, passe torre/numero concatenados
+            string referencia = request.TipoUnidade?.Equals("Casa", StringComparison.OrdinalIgnoreCase) == true
+                ? request.CEP ?? ""
+                : $"{request.Torre} {request.Numero}";
+
+            var resultadoIA = await _validationAgent.ValidateDestinatarioAsync(request.NomeDestinatario, referencia);
 
             if (resultadoIA.IsValid && resultadoIA.UnidadeId.HasValue)
             {
+                // Tentamos buscar a unidade (pode ser casa ou apto)
                 var unidade = await _context.UnidadesCasa
                     .Include(u => u.Morador)
                     .FirstOrDefaultAsync(u => u.Id == resultadoIA.UnidadeId.Value);
@@ -97,18 +183,47 @@ namespace PortSafe.Controllers
                         ValidacaoId = unidade.Id
                     });
                 }
+
+                // Se não achou em casas, tenta em apartamentos
+                var unidadeApto = await _context.UnidadesApartamento
+                    .Include(u => u.Morador)
+                    .FirstOrDefaultAsync(u => u.Id == resultadoIA.UnidadeId.Value);
+
+                if (unidadeApto?.Morador != null)
+                {
+                    return Ok(new ValidarDestinatarioComIAResponseDTO
+                    {
+                        Validado = true,
+                        ConfiancaIA = resultadoIA.ConfidenceScore,
+                        Mensagem = $"Destinatário validado pela IA! (Confiança: {resultadoIA.ConfidenceScore:F0}%) - {resultadoIA.Reason}",
+                        TipoResultado = TipoResultadoValidacao.Sucesso,
+                        DadosEncontrados = new DadosDestinatarioDTO
+                        {
+                            NomeMorador = unidadeApto.Morador!.Nome,
+                            TelefoneWhatsApp = unidadeApto.Morador.Telefone,
+                            TipoUnidade = "Apartamento",
+                            Endereco = $"Torre {unidadeApto.Torre}, Apto {unidadeApto.NumeroApartamento}",
+                            CEP = null,
+                            UnidadeId = unidadeApto.Id,
+                            MoradorId = unidadeApto.Morador.Id
+                        },
+                        Sugestoes = null,
+                        PodeRetentar = false,
+                        PodeAcionarPortaria = false,
+                        TokenValidacao = GerarTokenValidacao(),
+                        ValidacaoId = unidadeApto.Id
+                    });
+                }
             }
 
             return Ok(new ValidarDestinatarioComIAResponseDTO
             {
                 Validado = false,
-                ConfiancaIA = resultadoIA.ConfidenceScore,
-                Mensagem = resultadoIA.Suggestions.Any()
-                    ? $"Destinatário não encontrado com certeza. Veja as sugestões abaixo: {resultadoIA.Reason}"
-                    : $"Destinatário não encontrado no sistema. {resultadoIA.Reason}",
-                TipoResultado = resultadoIA.Suggestions.Any() ? TipoResultadoValidacao.MultiplasCombinacoes : TipoResultadoValidacao.NaoEncontrado,
+                ConfiancaIA = 0,
+                Mensagem = "Destinatário não encontrado pela IA.",
+                TipoResultado = TipoResultadoValidacao.NaoEncontrado,
                 DadosEncontrados = null,
-                Sugestoes = resultadoIA.Suggestions,
+                Sugestoes = null,
                 PodeRetentar = true,
                 PodeAcionarPortaria = true,
                 TokenValidacao = null,
@@ -127,6 +242,7 @@ namespace PortSafe.Controllers
             if (armario == null)
                 return Ok(new SolicitarArmarioResponseDTO { Sucesso = false, Mensagem = "Nenhum armário disponível no momento. Por favor, acione a portaria." });
 
+            // Mantemos comportamento atual (procura unidade casa por id)
             var unidade = await _context.UnidadesCasa
                 .Include(u => u.Morador)
                 .FirstOrDefaultAsync(u => u.Id == request.UnidadeId && u.Morador != null);
@@ -294,7 +410,7 @@ namespace PortSafe.Controllers
                 return true;
             }
 
-            // Busca em Apartamentos
+            // Busca em Apartamentos (por nome; poderia ser por torre+numero se disponível)
             var moradorApto = await _context.UnidadesApartamento
                 .Include(u => u.Morador)
                 .FirstOrDefaultAsync(u => u.Morador != null && u.Morador.Nome == nomeDestinatario);
