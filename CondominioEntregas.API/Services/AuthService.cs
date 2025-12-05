@@ -13,11 +13,13 @@ namespace PortSafe.Services
     {
         private readonly PortSafeContext _context;
         private readonly IConfiguration _config;
+        private readonly GmailService _gmailService;
 
-        public AuthService(PortSafeContext context, IConfiguration config)
+        public AuthService(PortSafeContext context, IConfiguration config, GmailService gmailService)
         {
             _context = context;
             _config = config;
+            _gmailService = gmailService;
         }
 
         // ========================
@@ -68,7 +70,6 @@ namespace PortSafe.Services
 
             await ValidarCondominioAsync(request.CondominioId);
 
-            // Corrigido: antes buscava em _context.Usuarios (provavelmente inexistente)
             var emailJaUsado = await _context.Moradores.AnyAsync(m => m.Email == request.Email) ||
                                await _context.Porteiros.AnyAsync(p => p.Email == request.Email);
 
@@ -136,7 +137,7 @@ namespace PortSafe.Services
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(8), // opcional: definir expiração explícita
+                expires: DateTime.UtcNow.AddHours(8),
                 signingCredentials: creds
             );
 
@@ -152,7 +153,7 @@ namespace PortSafe.Services
 
             var usuario = await BuscarUsuarioPorEmailAsync(email);
             if (usuario == null)
-                return string.Empty; // Não informar se existe ou não
+                return string.Empty;
 
             var token = new Random().Next(100000, 999999).ToString();
 
@@ -161,8 +162,10 @@ namespace PortSafe.Services
 
             await _context.SaveChangesAsync();
 
-            // TODO: Enviar token por e-mail (SMTP, SendGrid, etc.)
-            return token; // Apenas para dev
+            // Envia e-mail de reset
+            await _gmailService.EnviarEmailResetSenha(usuario.Nome ?? "Usuário", usuario.Email, token);
+
+            return token;
         }
 
         public async Task<bool> RedefinirSenha(string email, string token, string novaSenha)
@@ -192,7 +195,6 @@ namespace PortSafe.Services
         // ========================
         // MÉTODOS PRIVADOS AUXILIARES
         // ========================
-
         private async Task<Condominio> ValidarCondominioAsync(int condominioId)
         {
             var condominio = await _context.Condominios
@@ -266,7 +268,7 @@ namespace PortSafe.Services
                 await _context.SaveChangesAsync();
                 return unidade;
             }
-            else // Apartamento
+            else
             {
                 if (request.DadosApartamento == null ||
                     string.IsNullOrWhiteSpace(request.DadosApartamento.Bloco) ||

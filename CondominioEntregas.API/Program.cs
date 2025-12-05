@@ -28,7 +28,14 @@ builder.Services.AddDbContext<PortSafeContext>(options => options.UseNpgsql(conn
 
 builder.Services.AddControllers();
 
-builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<AuthService>(sp =>
+{
+    var context = sp.GetRequiredService<PortSafeContext>();
+    var config = sp.GetRequiredService<IConfiguration>();
+    var gmailService = sp.GetRequiredService<GmailService>();
+    return new AuthService(context, config, gmailService);
+});
+
 
 // Configurar JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];
