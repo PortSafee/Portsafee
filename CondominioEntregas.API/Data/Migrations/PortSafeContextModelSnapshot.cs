@@ -98,7 +98,6 @@ namespace CondominioEntregas.API.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("NumeroCasa")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("SenhaAcesso")

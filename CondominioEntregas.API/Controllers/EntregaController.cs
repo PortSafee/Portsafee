@@ -231,56 +231,7 @@ namespace PortSafe.Controllers
             });
         }
 
-        [HttpPost("SolicitarArmario")]
-        public async Task<ActionResult<SolicitarArmarioResponseDTO>> SolicitarArmario([FromBody] SolicitarArmarioRequestDTO request)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            var armario = await _context.Armarios
-                .FirstOrDefaultAsync(a => a.Status == StatusArmario.Disponivel);
-
-            if (armario == null)
-                return Ok(new SolicitarArmarioResponseDTO { Sucesso = false, Mensagem = "Nenhum armário disponível no momento. Por favor, acione a portaria." });
-
-            // Mantemos comportamento atual (procura unidade casa por id)
-            var unidade = await _context.UnidadesCasa
-                .Include(u => u.Morador)
-                .FirstOrDefaultAsync(u => u.Id == request.UnidadeId && u.Morador != null);
-
-            if (unidade == null)
-                return BadRequest(new SolicitarArmarioResponseDTO { Sucesso = false, Mensagem = "Unidade não encontrada." });
-
-            var entrega = new Entrega
-            {
-                NomeDestinatario = unidade.Morador.Nome,
-                NumeroCasa = unidade.NumeroCasa.ToString(),
-                EnderecoGerado = $"{unidade.Rua}, Casa {unidade.NumeroCasa}",
-                ArmariumId = armario.Id,
-                CodigoEntrega = GerarCodigoEntrega(),
-                SenhaAcesso = GerarSenhaAcesso(),
-                DataHoraRegistro = DateTime.UtcNow,
-                Status = StatusEntrega.AguardandoArmario,
-                TelefoneWhatsApp = unidade.Morador.Telefone,
-                MensagemEnviada = false
-            };
-
-            armario.Status = StatusArmario.Ocupado;
-            armario.UltimaAbertura = DateTime.UtcNow;
-
-            _context.Entregas.Add(entrega);
-            await _context.SaveChangesAsync();
-
-            return Ok(new SolicitarArmarioResponseDTO
-            {
-                Sucesso = true,
-                Mensagem = $"Armário {armario.Numero} liberado! Deposite o pacote e feche a porta.",
-                NumeroArmario = int.Parse(armario.Numero ?? "0"),
-                CodigoEntrega = entrega.CodigoEntrega,
-                EntregaId = entrega.Id,
-                LimiteDeposito = DateTime.UtcNow.AddMinutes(5)
-            });
-        }
-
+        
         [HttpPost("ConfirmarFechamento")]
         public async Task<ActionResult<ConfirmarFechamentoResponseDTO>> ConfirmarFechamento([FromBody] ConfirmarFechamentoRequestDTO request)
         {
@@ -316,6 +267,77 @@ namespace PortSafe.Controllers
                 NotificacaoEnviada = notificacaoEnviada
             });
         }
+
+       [HttpPost("SolicitarArmario")]
+public async Task<ActionResult<SolicitarArmarioResponseDTO>> SolicitarArmario([FromBody] SolicitarArmarioRequestDTO request)
+{
+    if (!ModelState.IsValid) return BadRequest(ModelState);
+
+    // 1. Tenta buscar unidade Casa
+    UnidadeCasa? unidadeCasa = await _context.UnidadesCasa
+        .Include(u => u.Morador)
+        .FirstOrDefaultAsync(u => u.Id == request.UnidadeId);
+
+    // 2. Se não for casa, tenta apartamento
+    UnidadeApartamento? unidadeApto = null;
+
+    if (unidadeCasa == null)
+    {
+        unidadeApto = await _context.UnidadesApartamento
+            .Include(u => u.Morador)
+            .FirstOrDefaultAsync(u => u.Id == request.UnidadeId);
+
+        if (unidadeApto == null || unidadeApto.Morador == null)
+            return NotFound("Unidade não encontrada.");
+    }
+
+    // 3. Buscar primeiro armário disponível
+    var armario = await _context.Armarios
+        .FirstOrDefaultAsync(a => a.Status == StatusArmario.Disponivel);
+
+    if (armario == null)
+        return BadRequest(new { mensagem = "Nenhum armário disponível no momento." });
+
+    // 4. Reservar o armário
+    armario.Status = StatusArmario.Ocupado;
+    armario.UltimaAbertura = DateTime.UtcNow;
+
+    // 5. Criar a entrega corretamente
+    var entrega = new Entrega
+    {
+        NomeDestinatario = unidadeCasa?.Morador?.Nome 
+                            ?? unidadeApto!.Morador!.Nome,
+
+        EnderecoGerado = unidadeCasa != null 
+            ? $"{unidadeCasa.Rua}, Casa {unidadeCasa.NumeroCasa}"
+            : $"Torre {unidadeApto!.Torre}, Apto {unidadeApto.NumeroApartamento}",
+
+        TelefoneWhatsApp = unidadeCasa?.Morador?.Telefone 
+                            ?? unidadeApto!.Morador!.Telefone,
+
+        ArmariumId = armario.Id,
+        CodigoEntrega = GerarCodigoEntrega(),
+        SenhaAcesso = GerarSenhaAcesso(),
+        DataHoraRegistro = DateTime.UtcNow,
+        Status = StatusEntrega.AguardandoArmario,
+        MensagemEnviada = false
+    };
+
+    _context.Entregas.Add(entrega);
+    await _context.SaveChangesAsync();
+
+    // 6. Retorno para o front
+    return Ok(new SolicitarArmarioResponseDTO
+    {
+        Sucesso = true,
+        Mensagem = $"Armário {armario.Numero} liberado! Deposite o pacote e feche a porta.",
+        NumeroArmario = int.Parse(armario.Numero ?? "0"),
+        CodigoEntrega = entrega.CodigoEntrega,
+        EntregaId = entrega.Id,
+        LimiteDeposito = DateTime.UtcNow.AddMinutes(5)
+    });
+}
+
 
         [HttpPost("AcionarPortaria")]
         public async Task<ActionResult<AcionarPortariaResponseDTO>> AcionarPortaria([FromBody] AcionarPortariaRequestDTO request)
