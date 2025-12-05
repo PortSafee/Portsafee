@@ -130,7 +130,7 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = string.Empty; // Define a raiz do Swagger UI
 });
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -365,6 +365,46 @@ public async Task<ActionResult<SolicitarArmarioResponseDTO>> SolicitarArmario([F
             });
         }
 
+        [HttpGet("PorMorador")]
+public async Task<ActionResult<IEnumerable<Entrega>>> GetByMorador([FromQuery] string nome)
+{
+    if (string.IsNullOrWhiteSpace(nome))
+        return BadRequest("Nome do morador é obrigatório.");
+
+    var nomeNormalizado = nome.Trim().ToLower();
+
+    var entregas = await _context.Entregas
+        .AsQueryable()
+        .Where(e => e.NomeDestinatario.ToLower() == nomeNormalizado)
+        .OrderByDescending(e => e.DataHoraRegistro)
+        .ToListAsync();
+
+    return Ok(entregas);
+}
+
+[HttpGet("PorMoradorId")]
+public async Task<ActionResult<IEnumerable<Entrega>>> GetByMoradorId([FromQuery] int id)
+{
+    if (id <= 0)
+        return BadRequest("ID do morador inválido.");
+
+    // Busca entregas onde o NomeDestinatario pertence ao Morador do ID informado
+    var morador = await _context.Moradores.FirstOrDefaultAsync(m => m.Id == id);
+
+    if (morador == null)
+        return NotFound("Morador não encontrado.");
+
+    var nomeNormalizado = morador.Nome.Trim().ToLower();
+
+    var entregas = await _context.Entregas
+        .Where(e => e.NomeDestinatario.ToLower() == nomeNormalizado)
+        .OrderByDescending(e => e.DataHoraRegistro)
+        .ToListAsync();
+
+    return Ok(entregas);
+}
+
+
         // ========================================
         // MÉTODOS PRIVADOS REUTILIZÁVEIS
         // ========================================
