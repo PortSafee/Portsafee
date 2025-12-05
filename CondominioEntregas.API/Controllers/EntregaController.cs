@@ -404,6 +404,26 @@ public async Task<ActionResult<IEnumerable<Entrega>>> GetByMoradorId([FromQuery]
     return Ok(entregas);
 }
 
+[HttpPut("ConfirmarRetirada")]
+public async Task<IActionResult> ConfirmarRetirada(int entregaId)
+{
+    var entrega = await _context.Entregas.FindAsync(entregaId);
+
+    if (entrega == null)
+        return NotFound("Entrega não encontrada.");
+
+    entrega.Status = StatusEntrega.Retirada;
+    entrega.DataHoraRetirada = DateTime.UtcNow;
+
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = "Retirada confirmada." });
+}
+
+
+
+
 
         // ========================================
         // MÉTODOS PRIVADOS REUTILIZÁVEIS
