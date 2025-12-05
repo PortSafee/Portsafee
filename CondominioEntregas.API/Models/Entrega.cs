@@ -9,7 +9,6 @@ namespace PortSafe.Models
         [Required]
         public string? NomeDestinatario { get; set; }
 
-        [Required]
         public string? NumeroCasa { get; set; }
 
         public string? EnderecoGerado { get; set; }
