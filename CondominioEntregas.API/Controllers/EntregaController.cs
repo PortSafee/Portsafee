@@ -232,53 +232,56 @@ namespace PortSafe.Controllers
         }
 
         
-        [HttpPost("ConfirmarFechamento")]
-        public async Task<ActionResult<ConfirmarFechamentoResponseDTO>> ConfirmarFechamento([FromBody] ConfirmarFechamentoRequestDTO request)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+       [HttpPost("ConfirmarFechamento")]
+public async Task<ActionResult<ConfirmarFechamentoResponseDTO>> ConfirmarFechamento([FromBody] ConfirmarFechamentoRequestDTO request)
+{
+    if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var entrega = await _context.Entregas
-                .Include(e => e.Armario)
-                .FirstOrDefaultAsync(e => e.Id == request.EntregaId);
+    var entrega = await _context.Entregas
+        .Include(e => e.Armario)
+        .FirstOrDefaultAsync(e => e.Id == request.EntregaId);
 
-            if (entrega?.Armario == null)
-                return NotFound(new ConfirmarFechamentoResponseDTO { Sucesso = false, Mensagem = "Entrega ou armário não encontrado." });
+    if (entrega?.Armario == null)
+        return NotFound(new ConfirmarFechamentoResponseDTO { Sucesso = false, Mensagem = "Entrega ou armário não encontrado." });
 
-            entrega.Status = StatusEntrega.Armazenada;
-            entrega.Armario.Status = StatusArmario.Disponivel;
-            entrega.Armario.UltimoFechamento = DateTime.UtcNow;
+    // Atualiza status da entrega e do armário
+    entrega.Status = StatusEntrega.Armazenada;
+    entrega.Armario.Status = StatusArmario.Disponivel;
+    entrega.Armario.UltimoFechamento = DateTime.UtcNow;
 
-            bool notificacaoEnviada = await TentarEnviarNotificacaoAsync(entrega.NomeDestinatario, entrega.Armario.Numero!, entrega.SenhaAcesso!, entrega.CodigoEntrega!);
+    // Envia notificação se configurado
+    bool notificacaoEnviada = await TentarEnviarNotificacaoAsync(
+        entrega.NomeDestinatario, 
+        entrega.Armario.Numero!, 
+        entrega.SenhaAcesso!, 
+        entrega.CodigoEntrega!);
 
-            if (notificacaoEnviada)
-            {
-                entrega.MensagemEnviada = true;
-            }
+    if (notificacaoEnviada)
+        entrega.MensagemEnviada = true;
 
-            await _context.SaveChangesAsync();
+    await _context.SaveChangesAsync();
 
-            return Ok(new ConfirmarFechamentoResponseDTO
-            {
-                Sucesso = true,
-                Mensagem = "Entrega confirmada com sucesso! Morador será notificado.",
-                CodigoEntrega = entrega.CodigoEntrega,
-                SenhaAcesso = entrega.SenhaAcesso,
-                DataHoraEntrega = entrega.DataHoraRegistro,
-                NotificacaoEnviada = notificacaoEnviada
-            });
-        }
+    return Ok(new ConfirmarFechamentoResponseDTO
+    {
+        Sucesso = true,
+        Mensagem = "Entrega confirmada com sucesso! Morador será notificado.",
+        CodigoEntrega = entrega.CodigoEntrega,
+        SenhaAcesso = entrega.SenhaAcesso,
+        DataHoraEntrega = entrega.DataHoraRegistro,
+        NotificacaoEnviada = notificacaoEnviada
+    });
+}
 
-       [HttpPost("SolicitarArmario")]
+
+      [HttpPost("SolicitarArmario")]
 public async Task<ActionResult<SolicitarArmarioResponseDTO>> SolicitarArmario([FromBody] SolicitarArmarioRequestDTO request)
 {
     if (!ModelState.IsValid) return BadRequest(ModelState);
 
-    // 1. Tenta buscar unidade Casa
     UnidadeCasa? unidadeCasa = await _context.UnidadesCasa
         .Include(u => u.Morador)
         .FirstOrDefaultAsync(u => u.Id == request.UnidadeId);
 
-    // 2. Se não for casa, tenta apartamento
     UnidadeApartamento? unidadeApto = null;
 
     if (unidadeCasa == null)
@@ -291,30 +294,32 @@ public async Task<ActionResult<SolicitarArmarioResponseDTO>> SolicitarArmario([F
             return NotFound("Unidade não encontrada.");
     }
 
-    // 3. Buscar primeiro armário disponível
+    // Buscar primeiro armário disponível
     var armario = await _context.Armarios
         .FirstOrDefaultAsync(a => a.Status == StatusArmario.Disponivel);
 
     if (armario == null)
         return BadRequest(new { mensagem = "Nenhum armário disponível no momento." });
 
-    // 4. Reservar o armário
+    // Verificar se já existe uma entrega para este armário que não foi retirada
+    var entregaExistente = await _context.Entregas
+        .FirstOrDefaultAsync(e => e.ArmariumId == armario.Id && e.Status != StatusEntrega.Retirada);
+
+    if (entregaExistente != null)
+        return BadRequest(new { mensagem = "Já existe uma entrega associada a este armário." });
+
+    // Reservar o armário
     armario.Status = StatusArmario.Ocupado;
     armario.UltimaAbertura = DateTime.UtcNow;
 
-    // 5. Criar a entrega corretamente
+    // Criar nova entrega
     var entrega = new Entrega
     {
-        NomeDestinatario = unidadeCasa?.Morador?.Nome 
-                            ?? unidadeApto!.Morador!.Nome,
-
+        NomeDestinatario = unidadeCasa?.Morador?.Nome ?? unidadeApto!.Morador!.Nome,
         EnderecoGerado = unidadeCasa != null 
             ? $"{unidadeCasa.Rua}, Casa {unidadeCasa.NumeroCasa}"
             : $"Torre {unidadeApto!.Torre}, Apto {unidadeApto.NumeroApartamento}",
-
-        TelefoneWhatsApp = unidadeCasa?.Morador?.Telefone 
-                            ?? unidadeApto!.Morador!.Telefone,
-
+        TelefoneWhatsApp = unidadeCasa?.Morador?.Telefone ?? unidadeApto!.Morador!.Telefone,
         ArmariumId = armario.Id,
         CodigoEntrega = GerarCodigoEntrega(),
         SenhaAcesso = GerarSenhaAcesso(),
@@ -326,7 +331,6 @@ public async Task<ActionResult<SolicitarArmarioResponseDTO>> SolicitarArmario([F
     _context.Entregas.Add(entrega);
     await _context.SaveChangesAsync();
 
-    // 6. Retorno para o front
     return Ok(new SolicitarArmarioResponseDTO
     {
         Sucesso = true,
@@ -337,6 +341,7 @@ public async Task<ActionResult<SolicitarArmarioResponseDTO>> SolicitarArmario([F
         LimiteDeposito = DateTime.UtcNow.AddMinutes(5)
     });
 }
+
 
 
         [HttpPost("AcionarPortaria")]
