@@ -48,6 +48,16 @@ namespace PortSafe.Controllers
         // ========================================
         // ENDPOINTS
         // ========================================
+[HttpGet("Armazenadas")]
+public async Task<ActionResult<IEnumerable<Entrega>>> GetArmazenadas()
+{
+    var entregas = await _context.Entregas
+        .Where(e => e.Status == StatusEntrega.Armazenada)
+        .OrderByDescending(e => e.DataHoraRegistro)
+        .ToListAsync();
+
+    return Ok(entregas);
+}
 
         [HttpPost("ValidarDestinatario")]
         public async Task<ActionResult<ValidacaoDestinatarioResponseDTO>> ValidarDestinatario([FromBody] ValidarDestinatarioRequestDTO request)
