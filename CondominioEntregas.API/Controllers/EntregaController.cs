@@ -254,20 +254,21 @@ public async Task<ActionResult<ConfirmarFechamentoResponseDTO>> ConfirmarFechame
     if (entrega?.Armario == null)
         return NotFound(new ConfirmarFechamentoResponseDTO { Sucesso = false, Mensagem = "Entrega ou armário não encontrado." });
 
-    // Atualiza status da entrega: pacote armazenado (aguardando retirada pelo morador)
-    entrega.Status = StatusEntrega.Armazenada;
-    entrega.DataHoraRegistro = entrega.DataHoraRegistro; // mantém a data de registro original
+    // Atualiza status da entrega para retirada
+    entrega.Status = StatusEntrega.Retirada;
+    entrega.DataHoraRetirada = DateTime.UtcNow;
 
-    // O armário deve permanecer OCUPADO enquanto a encomenda estiver dentro dele.
-    entrega.Armario.Status = StatusArmario.Ocupado;
+    // Libera armário
+    entrega.Armario.Status = StatusArmario.Disponivel;
     entrega.Armario.UltimoFechamento = DateTime.UtcNow;
 
-    // Envia notificação se configurado (email)
+    // Envia notificação se necessário
     bool notificacaoEnviada = await TentarEnviarNotificacaoAsync(
         entrega.NomeDestinatario,
         entrega.Armario.Numero!,
         entrega.SenhaAcesso!,
-        entrega.CodigoEntrega!);
+        entrega.CodigoEntrega!
+    );
 
     if (notificacaoEnviada)
         entrega.MensagemEnviada = true;
@@ -284,6 +285,7 @@ public async Task<ActionResult<ConfirmarFechamentoResponseDTO>> ConfirmarFechame
         NotificacaoEnviada = notificacaoEnviada
     });
 }
+
 
 
 
@@ -344,19 +346,21 @@ public async Task<ActionResult<SolicitarArmarioResponseDTO>> SolicitarArmario([F
 
     // Criar nova entrega e vincular ao armário
     var entrega = new Entrega
-    {
-        NomeDestinatario = unidadeCasa?.Morador?.Nome ?? unidadeApto!.Morador!.Nome,
-        EnderecoGerado = unidadeCasa != null 
-            ? $"{unidadeCasa.Rua}, Casa {unidadeCasa.NumeroCasa}"
-            : $"Torre {unidadeApto!.Torre}, Apto {unidadeApto.NumeroApartamento}",
-        TelefoneWhatsApp = unidadeCasa?.Morador?.Telefone ?? unidadeApto!.Morador!.Telefone,
-        ArmariumId = armarioEscolhido.Id,
-        CodigoEntrega = GerarCodigoEntrega(),
-        SenhaAcesso = GerarSenhaAcesso(),
-        DataHoraRegistro = DateTime.UtcNow,
-        Status = StatusEntrega.AguardandoArmario,
-        MensagemEnviada = false
-    };
+{
+    NomeDestinatario = unidadeCasa?.Morador?.Nome ?? unidadeApto!.Morador!.Nome,
+    EnderecoGerado = unidadeCasa != null 
+        ? $"{unidadeCasa.Rua}, Casa {unidadeCasa.NumeroCasa}"
+        : $"Torre {unidadeApto!.Torre}, Apto {unidadeApto.NumeroApartamento}",
+    TelefoneWhatsApp = unidadeCasa?.Morador?.Telefone ?? unidadeApto!.Morador!.Telefone,
+    ArmariumId = armarioEscolhido.Id,
+    CodigoEntrega = GerarCodigoEntrega(),
+    SenhaAcesso = GerarSenhaAcesso(),
+    DataHoraRegistro = DateTime.UtcNow,
+    Status = StatusEntrega.Armazenada,
+
+    MensagemEnviada = false
+};
+
 
     _context.Entregas.Add(entrega);
     await _context.SaveChangesAsync();
