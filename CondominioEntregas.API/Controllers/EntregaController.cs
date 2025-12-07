@@ -453,22 +453,21 @@ public async Task<IActionResult> ConfirmarRetirada(int entregaId)
     if (entrega == null)
         return NotFound("Entrega não encontrada.");
 
-    if (entrega.Armario == null)
-        return BadRequest("Nenhum armário associado a esta entrega.");
-
     // Atualiza entrega
     entrega.Status = StatusEntrega.Retirada;
     entrega.DataHoraRetirada = DateTime.UtcNow;
 
-    // 🔥 Libera o armário
-    entrega.Armario.Status = StatusArmario.Disponivel;
-    entrega.Armario.UltimoFechamento = DateTime.UtcNow;
+    // Libera o armário apenas se existir
+    if (entrega.Armario != null)
+    {
+        entrega.Armario.Status = StatusArmario.Disponivel;
+        entrega.Armario.UltimoFechamento = DateTime.UtcNow;
+    }
 
     await _context.SaveChangesAsync();
 
-    return Ok(new { message = "Retirada confirmada. Armário liberado." });
+    return Ok(new { message = "Retirada confirmada." });
 }
-
         // ========================================
         // MÉTODOS PRIVADOS REUTILIZÁVEIS
         // ========================================
