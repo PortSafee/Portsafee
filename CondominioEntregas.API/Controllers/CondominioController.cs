@@ -24,17 +24,25 @@ namespace PortSafe.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<object>>> GetCondominios()
         {
-            var condominios = await _context.Condominios
-                .Select(c => new
-                {
-                    c.Id,
-                    c.NomeDoCondominio,
-                    c.Tipo,
-                    TotalMoradores = c.Moradores.Count
-                })
-                .ToListAsync();
+            try
+            {
+                var condominios = await _context.Condominios
+                    .Include(c => c.Moradores)
+                    .Select(c => new
+                    {
+                        c.Id,
+                        c.NomeDoCondominio,
+                        c.Tipo,
+                        TotalMoradores = c.Moradores.Count
+                    })
+                    .ToListAsync();
 
-            return Ok(condominios);
+                return Ok(condominios);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erro ao buscar condomínios.", error = ex.Message });
+            }
         }
 
         // Detalhes do cond por id

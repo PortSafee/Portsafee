@@ -45,6 +45,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 Write-Host "✓ Containers iniciados" -ForegroundColor Green
+Write-Host "  (Migrations serão aplicadas automaticamente ao iniciar a API)" -ForegroundColor Gray
 Write-Host ""
 
 # Aguardar alguns segundos

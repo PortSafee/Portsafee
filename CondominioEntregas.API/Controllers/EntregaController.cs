@@ -429,6 +429,97 @@ namespace PortSafe.Controllers
             }
         }
 
+        /// <summary>
+        /// Busca todas as entregas de um morador específico
+        /// </summary>
+        [HttpGet("PorMoradorId")]
+        public async Task<ActionResult<IEnumerable<EntregaResponseDTO>>> GetEntregasPorMoradorId([FromQuery] int id)
+        {
+            try
+            {
+                // Buscar o morador
+                var morador = await _context.Moradores.FindAsync(id);
+                
+                if (morador == null)
+                {
+                    return NotFound(new { mensagem = $"Morador com ID {id} não encontrado." });
+                }
+
+                // Buscar entregas pelo nome do morador
+                var entregas = await _context.Entregas
+                    .Include(e => e.Armario)
+                    .Where(e => e.NomeDestinatario == morador.Nome)
+                    .OrderByDescending(e => e.DataHoraRegistro)
+                    .Select(e => new EntregaResponseDTO
+                    {
+                        Id = e.Id,
+                        NomeDestinatario = e.NomeDestinatario,
+                        NumeroCasa = e.NumeroCasa,
+                        EnderecoGerado = e.EnderecoGerado,
+                        CodigoEntrega = e.CodigoEntrega,
+                        SenhaAcesso = e.SenhaAcesso,
+                        DataHoraRegistro = e.DataHoraRegistro,
+                        DataHoraRetirada = e.DataHoraRetirada,
+                        Status = e.Status,
+                        TelefoneWhatsApp = e.TelefoneWhatsApp,
+                        MensagemEnviada = e.MensagemEnviada,
+                        ArmarioId = e.ArmariumId,
+                        ArmarioNumero = e.Armario != null ? e.Armario.Numero : null,
+                        ArmarioStatus = e.Armario != null ? e.Armario.Status : null
+                    })
+                    .ToListAsync();
+
+                return Ok(entregas);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new 
+                { 
+                    mensagem = "Erro ao buscar entregas do morador",
+                    erro = ex.Message 
+                });
+            }
+        }
+
+        /// <summary>
+        /// Endpoint de teste para enviar email manualmente
+        /// </summary>
+        [HttpPost("TestarEmail")]
+        public async Task<ActionResult> TestarEnvioEmail([FromQuery] string email, [FromQuery] string nome)
+        {
+            try
+            {
+                Console.WriteLine($"[TestarEmail] Iniciando teste de envio para: {email}");
+                
+                await _emailService.EnviarEmailEntregaArmario(
+                    nome,
+                    email,
+                    "42",
+                    "1234",
+                    "ABC123"
+                );
+                
+                Console.WriteLine($"[TestarEmail] ✅ Email enviado com sucesso!");
+                
+                return Ok(new 
+                { 
+                    sucesso = true, 
+                    mensagem = $"Email de teste enviado com sucesso para {email}" 
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[TestarEmail] ❌ Erro: {ex.Message}");
+                return StatusCode(500, new 
+                { 
+                    sucesso = false, 
+                    mensagem = "Erro ao enviar email de teste",
+                    erro = ex.Message,
+                    detalhes = ex.InnerException?.Message
+                });
+            }
+        }
+
         // ========================================
         // MÉTODOS AUXILIARES – AGORA SÃO private
         // ========================================

@@ -79,6 +79,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Aplicar migrations automaticamente ao iniciar
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<PortSafeContext>();
+    db.Database.Migrate();
+}
+
 app.UseCors("AllowFrontend");
 
 // Configure the HTTP request pipeline.
