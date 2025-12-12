@@ -38,14 +38,11 @@ namespace CondominioEntregas.API.Data.Migrations
                 name: "Complemento",
                 table: "Condominios");
 
-            migrationBuilder.AlterColumn<int>(
-                name: "NumeroCasa",
-                table: "Condominios",
-                type: "integer",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "text",
-                oldNullable: true);
+            migrationBuilder.Sql(@"
+                ALTER TABLE ""Condominios"" 
+                ALTER COLUMN ""NumeroCasa"" TYPE integer 
+                USING NULLIF(""NumeroCasa"", '')::integer;
+            ");
         }
 
         /// <inheritdoc />

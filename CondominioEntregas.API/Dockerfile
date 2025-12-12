@@ -28,9 +28,13 @@ COPY --from=publish /app/publish .
 # Copiar arquivos de migration (necessário para aplicar migrations)
 COPY --from=build /src/Data/Migrations ./Data/Migrations
 
+# Copiar script de entrypoint
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
 # Render usa a variável PORT, mas também expõe 8080
 ENV ASPNETCORE_URLS=http://+:${PORT:-8080}
 EXPOSE ${PORT:-8080}
 
-# Script de inicialização que aplica migrations antes de iniciar a aplicação
-CMD dotnet ef database update && dotnet CondominioEntregas.API.dll
+# Usar entrypoint resiliente com retry para migrations
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

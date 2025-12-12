@@ -1,3 +1,4 @@
+// File: PortSafe/DTOs/ValidacaoDestinatarioResponseDTO.cs
 namespace PortSafe.DTOs
 {
     public class ValidacaoDestinatarioResponseDTO
@@ -29,7 +30,7 @@ namespace PortSafe.DTOs
         public string? TelefoneWhatsApp { get; set; }
         public string? TipoUnidade { get; set; } // "Casa" ou "Apartamento"
         public string? Endereco { get; set; } // "Rua X, Casa 10" ou "Torre A, Apto 301"
-        public string? CEP { get; set; }
+        public string? CEP { get; set; }      // pode ser null para apartamentos
         public int UnidadeId { get; set; }
         public int MoradorId { get; set; }
     }

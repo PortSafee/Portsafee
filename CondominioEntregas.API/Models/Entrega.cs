@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace PortSafe.Models
 {
@@ -9,7 +10,6 @@ namespace PortSafe.Models
         [Required]
         public string? NomeDestinatario { get; set; }
 
-        [Required]
         public string? NumeroCasa { get; set; }
 
         public string? EnderecoGerado { get; set; }
@@ -26,6 +26,7 @@ namespace PortSafe.Models
 
         public DateTime? DataHoraRetirada { get; set; }
 
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public StatusEntrega Status { get; set; }
 
         public string? TelefoneWhatsApp { get; set; }
