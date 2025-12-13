@@ -59,6 +59,35 @@ public async Task<ActionResult<IEnumerable<Entrega>>> GetArmazenadas()
     return Ok(entregas);
 }
 
+[HttpGet("Pendentes")]
+public async Task<ActionResult<IEnumerable<object>>> GetPendentes()
+{
+    var entregas = await _context.Entregas
+        .Where(e => e.Status == StatusEntrega.Armazenada || e.Status == StatusEntrega.NaPortaria)
+        .OrderByDescending(e => e.DataHoraRegistro)
+        .Select(e => new
+        {
+            e.Id,
+            e.NomeDestinatario,
+            e.EnderecoGerado,
+            e.TelefoneWhatsApp,
+            e.CodigoEntrega,
+            e.SenhaAcesso,
+            e.DataHoraRegistro,
+            e.DataHoraRetirada,
+            e.Status,
+            e.MensagemEnviada,
+            Armario = e.Armario != null ? new
+            {
+                e.Armario.Id,
+                e.Armario.Numero,
+                e.Armario.Status
+            } : null
+        })
+        .ToListAsync();
+
+    return Ok(entregas);
+}
         [HttpPost("ValidarDestinatario")]
         public async Task<ActionResult<ValidacaoDestinatarioResponseDTO>> ValidarDestinatario([FromBody] ValidarDestinatarioRequestDTO request)
         {
@@ -379,30 +408,49 @@ public async Task<ActionResult<SolicitarArmarioResponseDTO>> SolicitarArmario([F
 
 
         [HttpPost("AcionarPortaria")]
-        public async Task<ActionResult<AcionarPortariaResponseDTO>> AcionarPortaria([FromBody] AcionarPortariaRequestDTO request)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+public async Task<ActionResult<AcionarPortariaResponseDTO>> AcionarPortaria([FromBody] AcionarPortariaRequestDTO request)
+{
+    if (!ModelState.IsValid)
+        return BadRequest(ModelState);
 
-            var entrega = new Entrega
-            {
-                NomeDestinatario = request.NomeDestinatario,
-                EnderecoGerado = $"CEP: {request.CEP}",
-                DataHoraRegistro = DateTime.UtcNow,
-                Status = StatusEntrega.RedirecionadoPortaria,
-                MensagemEnviada = false
-            };
+    // Permite CEP vazio (apartamentos)
+    string enderecoGerado;
 
-            _context.Entregas.Add(entrega);
-            await _context.SaveChangesAsync();
+    if (!string.IsNullOrWhiteSpace(request.CEP))
+    {
+        // Para casas ou se o porteiro informar
+        enderecoGerado = $"CEP: {request.CEP}";
+    }
+    else
+    {
+        // Para apartamentos sem CEP
+        enderecoGerado = "Endereço não informado";
+    }
 
-            return Ok(new AcionarPortariaResponseDTO
-            {
-                Sucesso = true,
-                Mensagem = "Portaria acionada com sucesso! Aguarde o contato.",
-                ProtocoloAtendimento = entrega.Id,
-                DataHoraAcionamento = entrega.DataHoraRegistro
-            });
-        }
+    var entrega = new Entrega
+    {
+        NomeDestinatario = request.NomeDestinatario,
+        EnderecoGerado = enderecoGerado,
+        DataHoraRegistro = DateTime.UtcNow,
+
+        // ALTERAÇÃO IMPORTANTE
+        Status = StatusEntrega.NaPortaria,
+
+        MensagemEnviada = false
+    };
+
+    _context.Entregas.Add(entrega);
+    await _context.SaveChangesAsync();
+
+    return Ok(new AcionarPortariaResponseDTO
+    {
+        Sucesso = true,
+        Mensagem = "Portaria acionada com sucesso! Aguarde o contato.",
+        ProtocoloAtendimento = entrega.Id,
+        DataHoraAcionamento = entrega.DataHoraRegistro
+    });
+}
+
 
         [HttpGet("PorMorador")]
         public async Task<ActionResult<IEnumerable<Entrega>>> GetByMorador([FromQuery] string nome)

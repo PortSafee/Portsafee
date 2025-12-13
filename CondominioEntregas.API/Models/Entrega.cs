@@ -41,6 +41,7 @@ namespace PortSafe.Models
         Armazenada,
         Retirada,
         ErroValidacao,
-        RedirecionadoPortaria
+        RedirecionadoPortaria,
+        NaPortaria
     }
 }
