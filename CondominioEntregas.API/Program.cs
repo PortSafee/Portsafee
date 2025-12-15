@@ -12,53 +12,16 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Desabilitar file watcher em produção (evita erro de inotify no Render)
-builder.Host.ConfigureAppConfiguration((context, config) =>
-{
-    config.Sources.Clear();
-    config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false);
-    config.AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: false);
-    config.AddEnvironmentVariables();
-});
-
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
-// Configurar connection string (prioriza DATABASE_URL do Render)
-var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-var configConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-Console.WriteLine("=== DEBUG DATABASE CONNECTION ===");
-Console.WriteLine($"DATABASE_URL exists: {databaseUrl != null}");
-Console.WriteLine($"DATABASE_URL is empty: {string.IsNullOrEmpty(databaseUrl)}");
-Console.WriteLine($"DATABASE_URL length: {databaseUrl?.Length ?? 0}");
-Console.WriteLine($"First 20 chars: '{databaseUrl?.Substring(0, Math.Min(20, databaseUrl?.Length ?? 0))}'");
-Console.WriteLine($"Last 20 chars: '{(databaseUrl?.Length > 20 ? databaseUrl?.Substring(databaseUrl.Length - 20) : databaseUrl)}'");
-Console.WriteLine($"Config connection exists: {configConnectionString != null}");
-Console.WriteLine("=================================");
-
-var connectionString = databaseUrl ?? configConnectionString;
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrEmpty(connectionString))
 {
-    Console.WriteLine("❌ ERRO: Nenhuma connection string encontrada!");
-    throw new InvalidOperationException("Connection string não configurada. Defina DATABASE_URL ou ConnectionStrings:DefaultConnection.");
+    throw new InvalidOperationException("Connection string não configurada.");
 }
 
-// Trim para remover espaços e converter URI do Render para formato Npgsql
-connectionString = connectionString.Trim();
-
-// Se a URL não tem porta especificada, adiciona :5432
-if (connectionString.StartsWith("postgresql://") && !connectionString.Contains(":5432"))
-{
-    var uri = new Uri(connectionString);
-    connectionString = $"Host={uri.Host};Port=5432;Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]}";
-    Console.WriteLine($"✅ Converted to Npgsql format: Host={uri.Host};Port=5432;Database=...");
-}
-
-Console.WriteLine($"✅ Using connection string (length: {connectionString.Length})");
-
-builder.Services.AddDbContext<PortSafeContext>(options => options.UseNpgsql(connectionString)); // Configura o DbContext com PostgreSQL
+builder.Services.AddDbContext<PortSafeContext>(options => options.UseNpgsql(connectionString));
 
 builder.Services.AddControllers();
 
@@ -190,7 +153,7 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
-// Health check endpoint para Render e monitoramento
+// Health check endpoint
 app.MapGet("/health", () => Results.Ok(new
 {
     status = "healthy",
