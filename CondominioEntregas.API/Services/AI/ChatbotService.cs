@@ -24,6 +24,8 @@ namespace PortSafe.Services.AI
         {
             try
             {
+                _logger.LogInformation("Processando mensagem do chatbot: {Mensagem}", mensagemUsuario);
+                
                 // 1. Verificar se a mensagem é sobre entrega
                 var prompt = $@"
 Você é um assistente de entregas para um condomínio.
@@ -40,8 +42,10 @@ Mensagem do usuário: '{mensagemUsuario}'
 
 Responda em uma única frase curta.";
 
+                _logger.LogInformation("Chamando API do Gemini...");
                 var response = await _model.GenerateContent(prompt);
                 var textoGemini = response?.Text?.Trim();
+                _logger.LogInformation("Resposta do Gemini recebida: {Resposta}", textoGemini);
 
                 // 2. Verificar se é uma pergunta sobre entrega
                 var mensagemLower = mensagemUsuario.ToLower();
@@ -93,8 +97,9 @@ Responda em uma única frase curta.";
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao processar mensagem do chatbot");
-                return "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente em instantes.";
+                _logger.LogError(ex, "Erro ao processar mensagem do chatbot. Mensagem: {Message}, StackTrace: {StackTrace}", 
+                    ex.Message, ex.StackTrace);
+                return $"Desculpe, ocorreu um erro ao processar sua mensagem: {ex.Message}";
             }
         }
     }
