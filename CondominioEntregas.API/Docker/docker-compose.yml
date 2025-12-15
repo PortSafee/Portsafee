@@ -34,7 +34,7 @@ services:
       - AI__Gemini__Model=gemini-2.5-flash
       - AI__Gemini__Temperature=0.3
     ports:
-      - "5000:8080"
+      - "5095:8080"
     depends_on:
       postgres:
         condition: service_healthy

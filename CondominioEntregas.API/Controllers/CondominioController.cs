@@ -77,7 +77,7 @@ namespace PortSafe.Controllers
             if (string.IsNullOrWhiteSpace(request.NomeDoCondominio))
                 return BadRequest(new { message = "Nome do condomínio é obrigatório." });
 
-            var condominio = new CondominioImplementation
+            var condominio = new Condominio
             {
                 NomeDoCondominio = request.NomeDoCondominio,
                 Tipo = tipo
