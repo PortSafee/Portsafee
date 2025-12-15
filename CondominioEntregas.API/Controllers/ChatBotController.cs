@@ -8,7 +8,6 @@ namespace PortSafe.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class ChatbotController : ControllerBase
 {
     private readonly PortSafeContext _context;
@@ -35,10 +34,13 @@ public class ChatbotController : ControllerBase
         if (string.IsNullOrEmpty(geminiKey))
             return StatusCode(500, new { erro = "Configuração da API Gemini não encontrada" });
 
-        // Obter ID do usuário autenticado
+        // Tentar obter ID do usuário autenticado (opcional)
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
-            return Unauthorized(new { erro = "Usuário não autenticado" });
+        int? userId = null;
+        if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int parsedUserId))
+        {
+            userId = parsedUserId;
+        }
 
         var service = new ChatbotService(
             _context,

@@ -20,20 +20,19 @@ namespace PortSafe.Services.AI
             _model = _googleAI.GenerativeModel(model: modelName);
         }
 
-        public async Task<string> ProcessarMensagemAsync(string mensagemUsuario, int userId)
+        public async Task<string> ProcessarMensagemAsync(string mensagemUsuario, int? userId = null)
         {
             try
             {
-                _logger.LogInformation("Processando mensagem do chatbot: {Mensagem} para usuário {UserId}", mensagemUsuario, userId);
+                _logger.LogInformation("Processando mensagem do chatbot: {Mensagem} para usuário {UserId}", mensagemUsuario, userId ?? 0);
                 
-                // Buscar informações do usuário (Morador)
-                var morador = await _context.Moradores
-                    .Include(m => m.Unidade)
-                    .FirstOrDefaultAsync(m => m.Id == userId);
-
-                if (morador == null)
+                // Buscar informações do usuário (Morador) se autenticado
+                Morador? morador = null;
+                if (userId.HasValue)
                 {
-                    return "Desculpe, não consegui identificar seu perfil. Entre em contato com a portaria.";
+                    morador = await _context.Moradores
+                        .Include(m => m.Unidade)
+                        .FirstOrDefaultAsync(m => m.Id == userId.Value);
                 }
                 
                 // 1. Verificar se a mensagem é sobre entrega
@@ -68,6 +67,12 @@ Responda em uma única frase curta.";
 
                 if (isPerguntaEntrega)
                 {
+                    // Se não estiver autenticado, pedir para fazer login
+                    if (morador == null)
+                    {
+                        return "Para consultar suas entregas, por favor faça login no sistema. 🔐";
+                    }
+                    
                     // Buscar entregas pendentes APENAS DO MORADOR LOGADO
                     var entregas = await _context.Entregas
                         .Include(e => e.Armario)
