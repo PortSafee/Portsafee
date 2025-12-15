@@ -87,14 +87,18 @@ Responda em uma única frase curta.";
                         if (entregas.Count == 1)
                         {
                             var entrega = entregas.First();
-                            return $"📦 Olá {morador.Nome}! Sua entrega está no **armário {entrega.Armario?.Numero}** com a senha **{entrega.SenhaAcesso}**. " +
-                                   $"Registrada em {entrega.DataHoraRegistro:dd/MM/yyyy HH:mm}.";
+                            return $"📦 Olá {morador.Nome}! Sua entrega está no **Armário {entrega.Armario?.Numero}**.\n\n" +
+                                   $"🔑 **Senha:** {entrega.SenhaAcesso}\n" +
+                                   $"📅 **Data:** {entrega.DataHoraRegistro:dd/MM/yyyy}\n" +
+                                   $"🕒 **Horário:** {entrega.DataHoraRegistro:HH:mm}";
                         }
                         else
                         {
-                            var lista = string.Join("\n", entregas.Select((e, i) => 
-                                $"{i + 1}. Armário {e.Armario?.Numero} - Senha {e.SenhaAcesso}"));
-                            return $"📦 Olá {morador.Nome}! Você tem {entregas.Count} entregas armazenadas:\n{lista}";
+                            var lista = string.Join("\n\n", entregas.Select((e, i) => 
+                                $"**{i + 1}. Armário {e.Armario?.Numero}**\n" +
+                                $"🔑 Senha: {e.SenhaAcesso}\n" +
+                                $"📅 Data: {e.DataHoraRegistro:dd/MM/yyyy} às {e.DataHoraRegistro:HH:mm}"));
+                            return $"📦 Olá {morador.Nome}! Você tem {entregas.Count} entregas armazenadas:\n\n{lista}";
                         }
                     }
                     else

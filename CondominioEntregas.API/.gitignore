@@ -385,3 +385,6 @@ ScaffoldingReadMe.txt
 .env.production
 .env.*.local
 appsettings.Local.json
+appsettings.Development.json
+appsettings.*.json
+Docker/docker-compose.yml

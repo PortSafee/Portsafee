@@ -34,10 +34,17 @@ public class ChatbotController : ControllerBase
         if (string.IsNullOrEmpty(geminiKey))
             return StatusCode(500, new { erro = "Configuração da API Gemini não encontrada" });
 
-        // Tentar obter ID do usuário autenticado (opcional)
+        // Tentar obter ID do usuário do token JWT primeiro
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         int? userId = null;
-        if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int parsedUserId))
+        
+        // Se veio no body, usar esse (frontend pode enviar)
+        if (dto.UserId.HasValue && dto.UserId.Value > 0)
+        {
+            userId = dto.UserId.Value;
+        }
+        // Senão, tentar do token JWT
+        else if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int parsedUserId))
         {
             userId = parsedUserId;
         }
@@ -57,4 +64,5 @@ public class ChatbotController : ControllerBase
 public class PerguntaDto
 {
     public string Mensagem { get; set; } = string.Empty;
+    public int? UserId { get; set; }
 }
