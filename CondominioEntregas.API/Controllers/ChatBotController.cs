@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PortSafe.Data;
 using PortSafe.Services.AI;
+using System.Security.Claims;
 
 namespace PortSafe.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ChatbotController : ControllerBase
 {
     private readonly PortSafeContext _context;
@@ -32,13 +35,18 @@ public class ChatbotController : ControllerBase
         if (string.IsNullOrEmpty(geminiKey))
             return StatusCode(500, new { erro = "Configuração da API Gemini não encontrada" });
 
+        // Obter ID do usuário autenticado
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            return Unauthorized(new { erro = "Usuário não autenticado" });
+
         var service = new ChatbotService(
             _context,
             geminiKey,
             _config["AI:Gemini:Model"] ?? "gemini-2.5-flash",
             _logger);
 
-        var resposta = await service.ProcessarMensagemAsync(dto.Mensagem, dto.TelefoneWhatsApp);
+        var resposta = await service.ProcessarMensagemAsync(dto.Mensagem, userId);
 
         return Ok(new { resposta });
     }
@@ -47,5 +55,4 @@ public class ChatbotController : ControllerBase
 public class PerguntaDto
 {
     public string Mensagem { get; set; } = string.Empty;
-    public string? TelefoneWhatsApp { get; set; }
 }
