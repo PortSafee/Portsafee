@@ -23,6 +23,8 @@ Console.WriteLine("=== DEBUG DATABASE CONNECTION ===");
 Console.WriteLine($"DATABASE_URL exists: {databaseUrl != null}");
 Console.WriteLine($"DATABASE_URL is empty: {string.IsNullOrEmpty(databaseUrl)}");
 Console.WriteLine($"DATABASE_URL length: {databaseUrl?.Length ?? 0}");
+Console.WriteLine($"First 20 chars: '{databaseUrl?.Substring(0, Math.Min(20, databaseUrl?.Length ?? 0))}'");
+Console.WriteLine($"Last 20 chars: '{(databaseUrl?.Length > 20 ? databaseUrl?.Substring(databaseUrl.Length - 20) : databaseUrl)}'");
 Console.WriteLine($"Config connection exists: {configConnectionString != null}");
 Console.WriteLine("=================================");
 
@@ -32,6 +34,17 @@ if (string.IsNullOrEmpty(connectionString))
 {
     Console.WriteLine("❌ ERRO: Nenhuma connection string encontrada!");
     throw new InvalidOperationException("Connection string não configurada. Defina DATABASE_URL ou ConnectionStrings:DefaultConnection.");
+}
+
+// Trim para remover espaços e converter URI do Render para formato Npgsql
+connectionString = connectionString.Trim();
+
+// Se a URL não tem porta especificada, adiciona :5432
+if (connectionString.StartsWith("postgresql://") && !connectionString.Contains(":5432"))
+{
+    var uri = new Uri(connectionString);
+    connectionString = $"Host={uri.Host};Port=5432;Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]}";
+    Console.WriteLine($"✅ Converted to Npgsql format: Host={uri.Host};Port=5432;Database=...");
 }
 
 Console.WriteLine($"✅ Using connection string (length: {connectionString.Length})");
