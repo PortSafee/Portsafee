@@ -1,0 +1,47 @@
+services:
+  # Backend API
+  - type: web
+    name: portsafee-api
+    runtime: docker
+    region: oregon # Escolha a região mais próxima
+    plan: free # Mude para 'starter' para produção
+    dockerfilePath: ./CondominioEntregas.API/Dockerfile
+    dockerContext: ./CondominioEntregas.API
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: portsafee-db
+          property: connectionString
+      - key: Jwt__Key
+        generateValue: true
+        sync: false
+      - key: Gmail__Email
+        sync: false
+      - key: Gmail__AppPassword
+        sync: false
+      - key: AI__Gemini__ApiKey
+        sync: false
+      - key: AI__Gemini__Model
+        value: gemini-2.5-flash
+      - key: AI__Gemini__BaseUrl
+        value: https://generativelanguage.googleapis.com/v1beta
+      - key: AI__Gemini__Temperature
+        value: 0.3
+      - key: AI__Gemini__MaxTokens
+        value: 2048
+      - key: Jwt__Issuer
+        value: portsafee
+      - key: Jwt__Audience
+        value: PortSafe
+      - key: Jwt__ExpireMinutes
+        value: 60
+    healthCheckPath: /health
+
+databases:
+  # PostgreSQL Database
+  - name: portsafee-db
+    plan: free # Mude para 'starter' para produção
+    region: oregon # Mesma região do backend
+    ipAllowList: [] # Permite acesso de qualquer IP (necessário para o Render)

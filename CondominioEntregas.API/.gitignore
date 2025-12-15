@@ -378,3 +378,10 @@ ScaffoldingReadMe.txt
 # Entity Framework
 *.edmx.diagram
 *.edmx.sql
+
+# Environment variables (NUNCA COMMITAR!)
+.env
+.env.local
+.env.production
+.env.*.local
+appsettings.Local.json
