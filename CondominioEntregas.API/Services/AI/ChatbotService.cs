@@ -20,11 +20,21 @@ namespace PortSafe.Services.AI
             _model = _googleAI.GenerativeModel(model: modelName);
         }
 
-        public async Task<string> ProcessarMensagemAsync(string mensagemUsuario, string? telefoneWhatsApp = null)
+        public async Task<string> ProcessarMensagemAsync(string mensagemUsuario, int userId)
         {
             try
             {
-                _logger.LogInformation("Processando mensagem do chatbot: {Mensagem}", mensagemUsuario);
+                _logger.LogInformation("Processando mensagem do chatbot: {Mensagem} para usuário {UserId}", mensagemUsuario, userId);
+                
+                // Buscar informações do usuário (Morador)
+                var morador = await _context.Moradores
+                    .Include(m => m.Unidade)
+                    .FirstOrDefaultAsync(m => m.Id == userId);
+
+                if (morador == null)
+                {
+                    return "Desculpe, não consegui identificar seu perfil. Entre em contato com a portaria.";
+                }
                 
                 // 1. Verificar se a mensagem é sobre entrega
                 var prompt = $@"
@@ -58,37 +68,33 @@ Responda em uma única frase curta.";
 
                 if (isPerguntaEntrega)
                 {
-                    // Buscar entregas pendentes
-                    var query = _context.Entregas
+                    // Buscar entregas pendentes APENAS DO MORADOR LOGADO
+                    var entregas = await _context.Entregas
                         .Include(e => e.Armario)
-                        .Where(e => e.Status == StatusEntrega.Armazenada);
-
-                    // Se tiver telefone, filtrar por ele
-                    if (!string.IsNullOrEmpty(telefoneWhatsApp))
-                    {
-                        query = query.Where(e => e.TelefoneWhatsApp == telefoneWhatsApp);
-                    }
-
-                    var entregas = await query.OrderByDescending(e => e.DataHoraRegistro).ToListAsync();
+                        .Where(e => e.Status == StatusEntrega.Armazenada && 
+                                   (e.NomeDestinatario.ToLower().Contains(morador.Nome.ToLower()) ||
+                                    e.TelefoneWhatsApp == morador.Telefone))
+                        .OrderByDescending(e => e.DataHoraRegistro)
+                        .ToListAsync();
 
                     if (entregas.Any())
                     {
                         if (entregas.Count == 1)
                         {
                             var entrega = entregas.First();
-                            return $"📦 Sua entrega para {entrega.NomeDestinatario} está no **armário {entrega.Armario?.Numero}** com a senha **{entrega.SenhaAcesso}**. " +
+                            return $"📦 Olá {morador.Nome}! Sua entrega está no **armário {entrega.Armario?.Numero}** com a senha **{entrega.SenhaAcesso}**. " +
                                    $"Registrada em {entrega.DataHoraRegistro:dd/MM/yyyy HH:mm}.";
                         }
                         else
                         {
                             var lista = string.Join("\n", entregas.Select((e, i) => 
-                                $"{i + 1}. Armário {e.Armario?.Numero} - Senha {e.SenhaAcesso} - {e.NomeDestinatario}"));
-                            return $"📦 Você tem {entregas.Count} entregas armazenadas:\n{lista}";
+                                $"{i + 1}. Armário {e.Armario?.Numero} - Senha {e.SenhaAcesso}"));
+                            return $"📦 Olá {morador.Nome}! Você tem {entregas.Count} entregas armazenadas:\n{lista}";
                         }
                     }
                     else
                     {
-                        return "📭 Não encontrei nenhuma entrega armazenada no momento. Quando sua entrega chegar, você receberá uma notificação com os detalhes!";
+                        return $"📭 Olá {morador.Nome}! Não encontrei nenhuma entrega sua armazenada no momento. Quando sua entrega chegar, você receberá uma notificação!";
                     }
                 }
 
