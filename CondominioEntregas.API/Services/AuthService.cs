@@ -51,6 +51,17 @@ namespace PortSafe.Services
             _context.Moradores.Add(morador);
             await _context.SaveChangesAsync();
 
+            // Envia email de boas-vindas
+            try
+            {
+                await _gmailService.EnviarEmailBoasVindas(morador.Nome, morador.Email);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AuthService] ⚠️ Erro ao enviar email de boas-vindas: {ex.Message}");
+                // Não lança exceção para não bloquear o cadastro
+            }
+
             return morador;
         }
 
@@ -163,7 +174,16 @@ namespace PortSafe.Services
             await _context.SaveChangesAsync();
 
             // Envia e-mail de reset
-            await _gmailService.EnviarEmailResetSenha(usuario.Nome ?? "Usuário", usuario.Email, token);
+            try
+            {
+                await _gmailService.EnviarEmailResetSenha(usuario.Nome ?? "Usuário", usuario.Email, token);
+                Console.WriteLine($"[AuthService] ✅ Email de reset enviado para: {usuario.Email}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AuthService] ❌ Erro ao enviar email de reset: {ex.Message}");
+                throw; // Lança exceção para informar que o email não foi enviado
+            }
 
             return token;
         }

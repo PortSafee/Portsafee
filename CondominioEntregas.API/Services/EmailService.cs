@@ -100,69 +100,53 @@ namespace PortSafe.Services
         public async Task EnviarEmailBoasVindas(string nomeMorador, string emailMorador)
         {
             var assunto = "Bem-vindo ao PortSafe!";
-            var corpoHtml = $@"
-                <html>
-                <head>
-                    <style>
-                        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                        .header {{ background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 5px; }}
-                        .content {{ background-color: #f9f9f9; padding: 20px; margin-top: 20px; border-radius: 5px; }}
-                        .footer {{ margin-top: 20px; text-align: center; font-size: 12px; color: #777; }}
-                    </style>
-                </head>
-                <body>
-                    <div class='container'>
-                        <div class='header'>
-                            <h1>🏠 Bem-vindo ao PortSafe!</h1>
-                        </div>
-                        <div class='content'>
-                            <h2>Olá, {nomeMorador}!</h2>
-                            <p>Seu cadastro foi realizado com sucesso em nosso sistema.</p>
-                            <p>Agora você pode aproveitar todas as facilidades do PortSafe para receber suas entregas de forma segura e prática.</p>
-                            <h3>O que você pode fazer:</h3>
-                            <ul>
-                                <li>✅ Receber notificações quando suas entregas chegarem</li>
-                                <li>✅ Acessar armários inteligentes com senha exclusiva</li>
-                                <li>✅ Ter total controle das suas encomendas</li>
-                            </ul>
-                            <p>Em caso de dúvidas, entre em contato com a portaria do seu condomínio.</p>
-                        </div>
-                        <div class='footer'>
-                            <p>Este é um e-mail automático. Por favor, não responda.</p>
-                            <p>&copy; 2025 PortSafe - Sistema de Gestão de Entregas</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            ";
+            var corpo = $@"Olá {nomeMorador}!
 
-            await EnviarAsync(emailMorador, assunto, corpoHtml);
+Seu cadastro foi realizado com sucesso no PortSafe!
+
+Agora você pode aproveitar todas as facilidades do sistema:
+
+- Receber notificações quando suas entregas chegarem
+- Acessar armários inteligentes com senha exclusiva
+- Ter total controle das suas encomendas
+
+Em caso de dúvidas, entre em contato com a portaria do seu condomínio.
+
+Atenciosamente,
+Equipe PortSafe
+
+---
+Este é um e-mail automático. Por favor, não responda.
+© 2025 PortSafe - Sistema de Gestão de Entregas";
+
+            await EnviarAsync(emailMorador, assunto, corpo);
         }
 
         // Email de reset de senha
         public async Task EnviarEmailResetSenha(string nomeMorador, string emailMorador, string codigoReset)
         {
             var assunto = "Redefinição de Senha - PortSafe";
-            var corpoHtml = $@"
-                <html>
-                <body style='font-family: Arial, sans-serif; padding: 20px;'>
-                    <h2 style='color: #FF9800;'>🔑 Redefinição de Senha</h2>
-                    <p>Olá, <strong>{nomeMorador}</strong>!</p>
-                    <p>Você solicitou a redefinição de senha para sua conta no PortSafe.</p>
-                    <p>Use o código abaixo para redefinir sua senha:</p>
-                    <div style='background: #f0f0f0; padding: 15px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;'>
-                        {codigoReset}
-                    </div>
-                    <p style='color: #d32f2f;'><strong>⚠️ Este código é válido por 30 minutos.</strong></p>
-                    <p>Se você não solicitou esta redefinição, ignore este e-mail.</p>
-                    <hr style='margin: 20px 0;'>
-                    <p style='font-size: 12px; color: #777;'>PortSafe - Sistema de Gestão de Entregas</p>
-                </body>
-                </html>
-            ";
+            var corpo = $@"Olá {nomeMorador}!
 
-            await EnviarAsync(emailMorador, assunto, corpoHtml);
+Você solicitou a redefinição de senha para sua conta no PortSafe.
+
+Use o código abaixo para redefinir sua senha:
+
+============================
+      {codigoReset}
+============================
+
+⚠️ ATENÇÃO: Este código é válido por 1 hora.
+
+Se você não solicitou esta redefinição, ignore este e-mail.
+
+Atenciosamente,
+Equipe PortSafe
+
+---
+PortSafe - Sistema de Gestão de Entregas";
+
+            await EnviarAsync(emailMorador, assunto, corpo);
         }
 
         // Email de notificação de entrega no armário
