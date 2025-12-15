@@ -3,7 +3,7 @@ set -e
 
 echo "🚀 PortSafe - Iniciando aplicação..."
 
-# Função para aguardar o banco de dados
+# Função para aguardar o banco de dados e aplicar migrations
 wait_for_db() {
     echo "⏳ Aguardando banco de dados ficar disponível..."
     
@@ -11,7 +11,7 @@ wait_for_db() {
     attempt=0
     
     while [ $attempt -lt $max_attempts ]; do
-        if dotnet ef database update --no-build 2>/dev/null; then
+        if ./efbundle --connection "$DATABASE_URL" 2>/dev/null; then
             echo "✅ Migrations aplicadas com sucesso!"
             return 0
         fi
@@ -26,8 +26,13 @@ wait_for_db() {
     return 1
 }
 
-# Aplicar migrations com retry
-wait_for_db
+# Aplicar migrations com retry (se o efbundle existir)
+if [ -f "./efbundle" ]; then
+    chmod +x ./efbundle
+    wait_for_db
+else
+    echo "⚠️  Migration bundle não encontrado. Pulando aplicação de migrations."
+fi
 
 # Iniciar a aplicação
 echo "🎯 Iniciando PortSafe API..."

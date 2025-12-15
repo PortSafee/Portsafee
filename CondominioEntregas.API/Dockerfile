@@ -14,19 +14,17 @@ RUN dotnet build "CondominioEntregas.API.csproj" -c Release -o /app/build
 FROM build AS publish
 RUN dotnet publish "CondominioEntregas.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
+# Gerar migration bundle para aplicar migrations em runtime
+RUN dotnet new tool-manifest --force
+RUN dotnet tool install dotnet-ef
+RUN dotnet ef migrations bundle --configuration Release --runtime linux-x64 --self-contained -o /app/publish/efbundle
+
 # Stage 3: Final - Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
-# Instalar dotnet-ef tools para migrations
-RUN dotnet tool install --global dotnet-ef --version 9.0.0
-ENV PATH="${PATH}:/root/.dotnet/tools"
-
-# Copiar arquivos publicados
+# Copiar arquivos publicados (incluindo o efbundle)
 COPY --from=publish /app/publish .
-
-# Copiar arquivos de migration (necessário para aplicar migrations)
-COPY --from=build /src/Data/Migrations ./Data/Migrations
 
 # Copiar script de entrypoint
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
