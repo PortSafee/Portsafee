@@ -16,13 +16,25 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
 // Configurar connection string (prioriza DATABASE_URL do Render)
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
-    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+var configConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+Console.WriteLine("=== DEBUG DATABASE CONNECTION ===");
+Console.WriteLine($"DATABASE_URL exists: {databaseUrl != null}");
+Console.WriteLine($"DATABASE_URL is empty: {string.IsNullOrEmpty(databaseUrl)}");
+Console.WriteLine($"DATABASE_URL length: {databaseUrl?.Length ?? 0}");
+Console.WriteLine($"Config connection exists: {configConnectionString != null}");
+Console.WriteLine("=================================");
+
+var connectionString = databaseUrl ?? configConnectionString;
 
 if (string.IsNullOrEmpty(connectionString))
 {
+    Console.WriteLine("❌ ERRO: Nenhuma connection string encontrada!");
     throw new InvalidOperationException("Connection string não configurada. Defina DATABASE_URL ou ConnectionStrings:DefaultConnection.");
 }
+
+Console.WriteLine($"✅ Using connection string (length: {connectionString.Length})");
 
 builder.Services.AddDbContext<PortSafeContext>(options => options.UseNpgsql(connectionString)); // Configura o DbContext com PostgreSQL
 
